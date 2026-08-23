@@ -63,7 +63,12 @@ export class UsersRepository {
 
   async create(data: Prisma.UserCreateInput): Promise<UserSource> {
     try {
-      const user = await this.prisma.user.create({ data });
+      const user = await this.prisma.user.create({
+        data: {
+          ...data,
+          profile: { create: {} },
+        },
+      });
 
       return UserRepositoryMapper.toUserSource(user);
     } catch (error: unknown) {

@@ -17,7 +17,7 @@ export class NutrientResponseMapper {
     source: FoodNutrientSource,
   ): FoodNutrientResponseDto {
     return {
-      nutrient: this.ToNutrientDto(source.nutrient),
+      nutrient: NutrientResponseMapper.ToNutrientDto(source.nutrient),
       amount: source.amount,
     };
   }

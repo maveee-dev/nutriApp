@@ -2,7 +2,7 @@ import { IsDateString, IsDecimal, IsIn, IsOptional, IsString } from 'class-valid
 import { LABORATORY_TEST_CODES } from '../../types/laboratory-test-code.js';
 
 export class CreateLaboratoryResultDto {
-  @IsIn([LABORATORY_TEST_CODES.EGFR])
+  @IsIn([LABORATORY_TEST_CODES.EGFR, LABORATORY_TEST_CODES.POTASSIUM, LABORATORY_TEST_CODES.PHOSPHORUS])
   testCode!: string;
 
   @IsDecimal()

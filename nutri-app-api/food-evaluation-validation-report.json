@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-08-16T11:04:57.638Z",
+  "results": [
+    {
+      "id": "apple-raw-with-skin-100g",
+      "food": "Apple, raw, with skin",
+      "portionGrams": "100",
+      "score": 100,
+      "coverage": 100,
+      "sodiumAmount": "1",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 1 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 0.26 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "banana-raw-100g",
+      "food": "Banana, raw",
+      "portionGrams": "100",
+      "score": 100,
+      "coverage": 100,
+      "sodiumAmount": "1",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 1 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 1.09 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "broccoli-raw-100g",
+      "food": "Broccoli, raw",
+      "portionGrams": "100",
+      "score": 99,
+      "coverage": 100,
+      "sodiumAmount": "33",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 33 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 2.82 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "brown-rice-cooked-100g",
+      "food": "Rice, brown, long-grain, cooked",
+      "portionGrams": "100",
+      "score": 100,
+      "coverage": 100,
+      "sodiumAmount": "1",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 1 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 2.32 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "chicken-breast-roasted-100g",
+      "food": "Chicken breast, roasted",
+      "portionGrams": "100",
+      "score": 97,
+      "coverage": 100,
+      "sodiumAmount": "74",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 74 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 31.02 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "whole-milk-100g",
+      "food": "Milk, whole, 3.25% milkfat",
+      "portionGrams": "100",
+      "score": 98,
+      "coverage": 100,
+      "sodiumAmount": "43",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 43 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 3.15 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "potato-chips-plain-100g",
+      "food": "Potato chips, plain, salted",
+      "portionGrams": "100",
+      "score": 77,
+      "coverage": 100,
+      "sodiumAmount": "525",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 525 mg of sodium against the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 6.56 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "pass",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    },
+    {
+      "id": "potato-chips-plain-500g",
+      "food": "Potato chips, plain, salted",
+      "portionGrams": "500",
+      "score": 0,
+      "coverage": 100,
+      "sodiumAmount": "2625",
+      "sodiumTarget": "2300",
+      "compatibilityReasons": [
+        "This portion provides 2625 mg of sodium, above the current daily limit of 2300 mg."
+      ],
+      "proteinContribution": "This portion provides 32.8 g of protein toward the current daily target of 64 g.",
+      "deferredPolicies": [],
+      "expectedCompatibility": "needs-review",
+      "technicalResult": "pass",
+      "userIntuitive": "yes",
+      "explanationSufficient": "yes",
+      "reviewCategory": "none",
+      "reviewNotes": []
+    }
+  ]
+}

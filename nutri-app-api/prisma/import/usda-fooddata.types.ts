@@ -7,6 +7,7 @@ export interface UsdaFoodDataRecord {
   readonly foodPortions?: readonly UsdaFoodPortionRecord[];
   readonly servingSize?: number | string;
   readonly servingSizeUnit?: string;
+  readonly householdServingFullText?: string;
 }
 
 export interface UsdaFoodNutrientRecord {
@@ -34,6 +35,9 @@ export interface UsdaFoodCategoryRecord {
 export interface UsdaFoodPortionRecord {
   readonly portionDescription?: string;
   readonly gramWeight?: number | string;
+  readonly value?: number | string;
+  readonly amount?: number | string;
+  readonly modifier?: string;
   readonly measureUnit?: { readonly name?: string; readonly abbreviation?: string };
 }
 

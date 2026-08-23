@@ -13,6 +13,7 @@ export class NutritionAnalysisRepositoryMapper {
       consumedAt: row.consumedAt,
       items: row.items.map(
         (item): NutritionAnalysisItemSource => ({
+          id: item.id,
           quantity: item.quantity.toString(),
           servingGrams: item.serving.grams.toString(),
           nutrients: item.serving.food.nutrients.map((foodNutrient) => ({

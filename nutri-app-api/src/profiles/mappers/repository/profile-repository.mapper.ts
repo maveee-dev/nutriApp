@@ -11,6 +11,7 @@ export class ProfileRepositoryMapper {
       heightCm: row.heightCm,
       weightKg: row.weightKg,
       activityLevel: row.activityLevel,
+      nutritionGoal: row.nutritionGoal,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

@@ -1,4 +1,4 @@
-import { ActivityLevel, Sex } from '../../../../generated/prisma/client.js';
+import { ActivityLevel, NutritionGoal, Sex } from '../../../../generated/prisma/client.js';
 
 export class ProfileResponseDto {
   readonly id!: string;
@@ -7,6 +7,7 @@ export class ProfileResponseDto {
   readonly heightCm!: number | null;
   readonly weightKg!: number | null;
   readonly activityLevel!: ActivityLevel | null;
+  readonly nutritionGoal!: NutritionGoal | null;
   readonly createdAt!: Date;
   readonly updatedAt!: Date;
   readonly userId!: string;

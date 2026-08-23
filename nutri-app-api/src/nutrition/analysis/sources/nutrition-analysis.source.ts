@@ -5,6 +5,7 @@ export interface NutritionAnalysisNutrientSource {
 }
 
 export interface NutritionAnalysisItemSource {
+  readonly id?: string;
   readonly quantity: string;
   readonly servingGrams: string;
   readonly nutrients: readonly NutritionAnalysisNutrientSource[];

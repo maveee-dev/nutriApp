@@ -53,6 +53,89 @@ describe('UsdaFoodDataMapper', () => {
     });
   });
 
+  it('constructs serving names from USDA portion units when descriptions are absent', () => {
+    const fixtures = [
+      {
+        name: 'egg',
+        portion: { value: 1, measureUnit: { name: 'egg' }, modifier: 'large', gramWeight: 50 },
+        expected: { name: '1 egg, large', grams: '50' },
+      },
+      {
+        name: 'banana',
+        portion: { value: 1, measureUnit: { name: 'banana' }, modifier: 'peeled', gramWeight: 115 },
+        expected: { name: '1 banana, peeled', grams: '115' },
+      },
+      {
+        name: 'milk',
+        portion: { value: 1, measureUnit: { name: 'cup' }, gramWeight: 249 },
+        expected: { name: '1 cup', grams: '249' },
+      },
+      {
+        name: 'bread',
+        portion: { value: 1, measureUnit: { name: 'RACC' }, gramWeight: 30 },
+        expected: { name: '1 RACC', grams: '30' },
+      },
+      {
+        name: 'rice',
+        portion: { value: 1, measureUnit: { name: 'RACC' }, gramWeight: 45 },
+        expected: { name: '1 RACC', grams: '45' },
+      },
+      {
+        name: 'apple',
+        portion: { value: 1, measureUnit: { name: 'apple' }, gramWeight: 140 },
+        expected: { name: '1 apple', grams: '140' },
+      },
+      {
+        name: 'chicken breast',
+        portion: { value: 1, measureUnit: { abbreviation: 'RACC' }, gramWeight: 114 },
+        expected: { name: '1 RACC', grams: '114' },
+      },
+    ] as const;
+
+    for (const [index, fixture] of fixtures.entries()) {
+      const mapped = mapper.map({
+        ...record,
+        fdcId: 500 + index,
+        description: fixture.name,
+        foodPortions: [fixture.portion],
+      });
+
+      expect(mapped.servings).toEqual([fixture.expected]);
+    }
+  });
+
+  it('uses a matching householdServingFullText before portion unit fallbacks', () => {
+    const mapped = mapper.map({
+      ...record,
+      fdcId: 458,
+      foodPortions: [{ value: 1, measureUnit: { name: 'banana' }, gramWeight: 118 }],
+      servingSize: 118,
+      servingSizeUnit: 'g',
+      householdServingFullText: '1 medium banana',
+    });
+
+    expect(mapped.servings).toEqual([
+      { name: '1 medium banana', grams: '118' },
+      { name: 'serving', grams: '118' },
+    ]);
+  });
+
+  it('imports USDA householdServingFullText when no food portion provides it', () => {
+    const mapped = mapper.map({
+      ...record,
+      fdcId: 457,
+      foodPortions: [],
+      servingSize: 118,
+      servingSizeUnit: 'g',
+      householdServingFullText: '1 medium banana',
+    });
+
+    expect(mapped.servings).toEqual([
+      { name: '1 medium banana', grams: '118' },
+      { name: 'serving', grams: '118' },
+    ]);
+  });
+
   it('rejects unsupported USDA data types to avoid importing non-canonical bases', () => {
     expect(() => mapper.map({ ...record, dataType: 'Branded' })).toThrow('unsupported dataType');
   });

@@ -10,7 +10,10 @@ export function tofoodDetailSource(
 ): FoodDetailSource {
   return {
     id: row.id,
+    source: row.source,
+    sourceId: row.sourceId,
     name: row.name,
+    planningClass: row.planningClass,
     category: toFoodCategorySource(row.category),
     servings: row.servings.map(toServingSource),
     nutrients: 
@@ -32,6 +35,7 @@ export function toFoodSummarySource(
   return {
     id: row.id,
     name: row.name,
+    planningClass: row.planningClass,
     category: toFoodCategorySource(row.category),
   };
 }

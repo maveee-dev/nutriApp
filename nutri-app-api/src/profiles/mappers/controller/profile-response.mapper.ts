@@ -10,6 +10,7 @@ export class ProfileResponseMapper {
       heightCm: source.heightCm,
       weightKg: source.weightKg,
       activityLevel: source.activityLevel,
+      nutritionGoal: source.nutritionGoal,
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
       userId: source.userId,

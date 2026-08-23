@@ -18,7 +18,9 @@
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:debug": "node --experimental-vm-modules --inspect-brk node_modules/jest/bin/jest.js --runInBand",
-    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json"
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
+    "validate:food-evaluation": "tsx prisma/import/validate-food-evaluations.ts",
+    "audit:food-evaluation-coverage": "tsx prisma/audit-food-evaluation-coverage.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

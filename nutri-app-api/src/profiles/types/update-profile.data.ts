@@ -1,4 +1,4 @@
-import { ActivityLevel, Sex } from '../../../generated/prisma/client.js';
+import { ActivityLevel, NutritionGoal, Sex } from '../../../generated/prisma/client.js';
 
 export interface UpdateProfileData {
   age?: number;
@@ -6,4 +6,5 @@ export interface UpdateProfileData {
   heightCm?: number;
   weightKg?: number;
   activityLevel?: ActivityLevel;
+  nutritionGoal?: NutritionGoal;
 }

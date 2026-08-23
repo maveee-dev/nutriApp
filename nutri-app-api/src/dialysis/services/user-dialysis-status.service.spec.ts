@@ -1,4 +1,4 @@
-import { DialysisStatus } from '../../../generated/prisma/client.js';
+import { DialysisModality, DialysisStatus } from '../../../generated/prisma/client.js';
 import { UserDialysisStatusRepository } from '../repositories/user-dialysis-status.repository.js';
 import { UserDialysisStatusService } from './user-dialysis-status.service.js';
 
@@ -8,6 +8,7 @@ describe('UserDialysisStatusService', () => {
       findByUserId: async () => ({
         userId: 'user-1',
         status: DialysisStatus.INACTIVE,
+        modality: DialysisModality.UNKNOWN,
         effectiveAt: null,
         reportedAt: new Date('2026-08-15T00:00:00.000Z'),
         updatedAt: new Date('2026-08-15T00:00:00.000Z'),
@@ -33,6 +34,7 @@ describe('UserDialysisStatusService', () => {
       upsert: async (_userId: string, input: { status: DialysisStatus }) => ({
         userId: 'user-1',
         status: input.status,
+        modality: DialysisModality.UNKNOWN,
         effectiveAt: null,
         reportedAt: new Date(),
         updatedAt: new Date(),

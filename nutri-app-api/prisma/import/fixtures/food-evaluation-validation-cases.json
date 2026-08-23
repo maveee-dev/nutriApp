@@ -1,0 +1,189 @@
+{
+  "source": "USDA FoodData Central Foundation Foods",
+  "basis": "nutrient amounts are per 100 grams; portions are evaluated by the harness",
+  "cases": [
+    {
+      "id": "apple-raw-with-skin-100g",
+      "food": "Apple, raw, with skin",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "0.26" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "1" },
+        { "name": "Potassium, K", "unit": "mg", "amountPer100Grams": "107" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "52" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "2.4" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "13.81" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "0.028" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 100,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "banana-raw-100g",
+      "food": "Banana, raw",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "1.09" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "1" },
+        { "name": "Potassium, K", "unit": "mg", "amountPer100Grams": "358" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "89" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "2.6" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "22.84" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "0.112" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 100,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "broccoli-raw-100g",
+      "food": "Broccoli, raw",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "2.82" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "33" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "34" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "2.6" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "6.64" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "0.114" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 99,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "brown-rice-cooked-100g",
+      "food": "Rice, brown, long-grain, cooked",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "2.32" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "1" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "123" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "1.6" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "25.58" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "0.63" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 100,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "chicken-breast-roasted-100g",
+      "food": "Chicken breast, roasted",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "31.02" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "74" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "165" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "3.24" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "85" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 97,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "whole-milk-100g",
+      "food": "Milk, whole, 3.25% milkfat",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "3.15" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "43" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "61" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "4.8" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "1.87" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "10" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 98,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "potato-chips-plain-100g",
+      "food": "Potato chips, plain, salted",
+      "portionGrams": "100",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "6.56" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "525" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "536" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "4.4" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "53.01" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "6.2" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0.3" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "pass",
+        "score": 77,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    },
+    {
+      "id": "potato-chips-plain-500g",
+      "food": "Potato chips, plain, salted",
+      "portionGrams": "500",
+      "nutrients": [
+        { "name": "Protein", "unit": "g", "amountPer100Grams": "6.56" },
+        { "name": "Sodium, Na", "unit": "mg", "amountPer100Grams": "525" },
+        { "name": "Energy", "unit": "kcal", "amountPer100Grams": "536" },
+        { "name": "Fiber, total dietary", "unit": "g", "amountPer100Grams": "4.4" },
+        { "name": "Carbohydrate, by difference", "unit": "g", "amountPer100Grams": "53.01" },
+        { "name": "Fatty acids, total saturated", "unit": "g", "amountPer100Grams": "6.2" }
+        ,{ "name": "Sugars, added", "unit": "g", "amountPer100Grams": "0.3" },
+        { "name": "Cholesterol", "unit": "mg", "amountPer100Grams": "0" }
+      ],
+      "targets": { "sodiumMilligrams": "2300", "proteinGrams": "64" },
+      "expected": {
+        "compatibility": "needs-review",
+        "score": 0,
+        "coverage": 100,
+        "userIntuitive": "yes",
+        "explanationSufficient": "yes"
+      }
+    }
+  ]
+}

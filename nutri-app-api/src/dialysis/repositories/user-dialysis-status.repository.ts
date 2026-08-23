@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { UserDialysisStatusSource } from '../sources/user-dialysis-status.source.js';
 import { UpdateDialysisStatusInput } from '../types/update-dialysis-status.input.js';
+import { DialysisModality } from '../../../generated/prisma/client.js';
 import { UserDialysisStatusRepositoryMapper } from '../mappers/repository/user-dialysis-status-repository.mapper.js';
 
 @Injectable()
@@ -22,10 +23,12 @@ export class UserDialysisStatusRepository {
       create: {
         userId,
         status: input.status,
+        modality: input.modality ?? DialysisModality.UNKNOWN,
         effectiveAt: input.effectiveAt,
       },
       update: {
         status: input.status,
+        modality: input.modality ?? DialysisModality.UNKNOWN,
         effectiveAt: input.effectiveAt,
       },
     });

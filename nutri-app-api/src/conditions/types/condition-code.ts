@@ -1,6 +1,7 @@
 export const CONDITION_CODES = {
   CKD: 'ckd',
   HYPERTENSION: 'hypertension',
+  DIABETES: 'diabetes',
 } as const;
 
 export type ConditionCode = (typeof CONDITION_CODES)[keyof typeof CONDITION_CODES];

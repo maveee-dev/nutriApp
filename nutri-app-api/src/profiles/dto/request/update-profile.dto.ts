@@ -1,4 +1,4 @@
-import { ActivityLevel, Sex } from '../../../../generated/prisma/client.js';
+import { ActivityLevel, NutritionGoal, Sex } from '../../../../generated/prisma/client.js';
 import { IsEnum, IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
 
 export class UpdateProfileDto {
@@ -23,4 +23,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsEnum(ActivityLevel)
   activityLevel?: ActivityLevel;
+
+  @IsOptional()
+  @IsEnum(NutritionGoal)
+  nutritionGoal?: NutritionGoal;
 }

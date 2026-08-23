@@ -1,5 +1,7 @@
-import { PrismaClient } from '../../generated/prisma/client.js';
+import { Prisma, PrismaClient } from '../../generated/prisma/client.js';
 import { ImportedFoodRecord } from './usda-fooddata.types.js';
+import { classifyFoodPlanningClass } from '../../src/nutrition/foods/types/food-planning-class.js';
+import { Decimal } from 'decimal.js';
 
 export interface ImportSummary {
   readonly imported: number;
@@ -102,11 +104,11 @@ export class UsdaFoodDataImporter {
     await this.prisma.$transaction(async (tx) => {
       const food = await tx.food.upsert({
         where: { source_sourceId: { source: record.source, sourceId: record.sourceId } },
-        update: { name: record.name, categoryId },
-        create: { source: record.source, sourceId: record.sourceId, name: record.name, categoryId },
+        update: { name: record.name, categoryId, planningClass: classifyFoodPlanningClass(record.name, record.category.name) },
+        create: { source: record.source, sourceId: record.sourceId, name: record.name, categoryId, planningClass: classifyFoodPlanningClass(record.name, record.category.name) },
       });
       await tx.foodNutrient.deleteMany({ where: { foodId: food.id } });
-      await tx.serving.deleteMany({ where: { foodId: food.id } });
+      await this.reconcileServings(tx, food.id, record.servings);
       await tx.foodNutrient.createMany({
         data: record.nutrients.map((nutrient) => {
           const nutrientId = nutrientIds.get(nutrient.sourceId);
@@ -114,9 +116,73 @@ export class UsdaFoodDataImporter {
           return { foodId: food.id, nutrientId, amount: nutrient.amountPer100Grams };
         }),
       });
-      await tx.serving.createMany({
-        data: record.servings.map((serving) => ({ foodId: food.id, name: serving.name, grams: serving.grams })),
-      });
     });
+  }
+
+  private async reconcileServings(
+    tx: Prisma.TransactionClient,
+    foodId: string,
+    importedServings: ImportedFoodRecord['servings'],
+  ): Promise<void> {
+    const existingServings = await tx.serving.findMany({
+      where: { foodId },
+      select: {
+        id: true,
+        name: true,
+        grams: true,
+        _count: {
+          select: {
+            mealItems: true,
+            recipeComponents: true,
+            mealTemplateSlots: true,
+          },
+        },
+      },
+    });
+
+    const existingByKey = new Map<string, (typeof existingServings)[number]>();
+    const existingByName = new Map<string, (typeof existingServings)[number]>();
+    for (const serving of existingServings) {
+      existingByKey.set(this.servingKey(serving.name, serving.grams), serving);
+      existingByName.set(this.normalizeServingName(serving.name), serving);
+    }
+
+    const importedKeys = new Set<string>();
+    for (const imported of importedServings) {
+      const key = this.servingKey(imported.name, imported.grams);
+      importedKeys.add(key);
+      if (existingByKey.has(key)) continue;
+
+      const sameName = existingByName.get(this.normalizeServingName(imported.name));
+      if (sameName) {
+        throw new Error(
+          `Serving ${foodId}/${imported.name} changed from ${String(sameName.grams)} g to ${imported.grams} g; serving versioning is required before importing this change.`,
+        );
+      }
+
+      await tx.serving.create({
+        data: { foodId, name: imported.name, grams: imported.grams },
+      });
+    }
+
+    for (const existing of existingServings) {
+      if (importedKeys.has(this.servingKey(existing.name, existing.grams))) continue;
+      const referenced = existing._count.mealItems > 0
+        || existing._count.recipeComponents > 0
+        || existing._count.mealTemplateSlots > 0;
+      if (referenced) {
+        console.warn(`[USDA import] retaining referenced obsolete serving ${existing.id} (${existing.name}, ${String(existing.grams)} g).`);
+        continue;
+      }
+      await tx.serving.delete({ where: { id: existing.id } });
+    }
+  }
+
+  private servingKey(name: string, grams: unknown): string {
+    return `${this.normalizeServingName(name)}\u0000${new Decimal(String(grams)).toString()}`;
+  }
+
+  private normalizeServingName(name: string): string {
+    return name.trim().replace(/\s+/g, ' ').toLowerCase();
   }
 }

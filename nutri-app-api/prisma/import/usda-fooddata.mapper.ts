@@ -78,15 +78,24 @@ export class UsdaFoodDataMapper {
   }
 
   private mapServings(record: UsdaFoodDataRecord, foodId: string) {
+    const servingUnit = String(record.servingSizeUnit ?? '').trim().toLowerCase();
+    const servingSize = this.positiveDecimal(record.servingSize);
+    const householdServing = String(record.householdServingFullText ?? '').trim();
     const servings = (record.foodPortions ?? [])
       .map((portion) => {
         const grams = this.positiveDecimal(portion.gramWeight);
-        const name = String(portion.portionDescription ?? '').trim();
+        const name = this.portionName(portion, {
+          householdServing,
+          servingSize,
+          servingUnit,
+          grams,
+        });
         return grams && name ? { name, grams } : null;
       })
       .filter((portion): portion is { name: string; grams: string } => portion !== null);
-    const servingUnit = String(record.servingSizeUnit ?? '').trim().toLowerCase();
-    const servingSize = this.positiveDecimal(record.servingSize);
+    if (servingSize && servingUnit === 'g' && householdServing && !servings.some((item) => item.name.toLowerCase() === householdServing.toLowerCase())) {
+      servings.push({ name: householdServing, grams: servingSize });
+    }
     if (servingSize && servingUnit === 'g' && !servings.some((item) => item.name === 'serving')) {
       servings.push({ name: 'serving', grams: servingSize });
     }
@@ -99,6 +108,34 @@ export class UsdaFoodDataMapper {
       unique.set(serving.name.toLowerCase(), serving);
     }
     return [...unique.values()];
+  }
+
+  private portionName(
+    portion: NonNullable<UsdaFoodDataRecord['foodPortions']>[number],
+    context: {
+      householdServing: string;
+      servingSize: string | null;
+      servingUnit: string;
+      grams: string | null;
+    },
+  ): string {
+    const description = String(portion.portionDescription ?? '').trim();
+    if (description) return description;
+
+    if (
+      context.householdServing &&
+      context.servingSize &&
+      context.servingUnit === 'g' &&
+      context.grams === context.servingSize
+    ) {
+      return context.householdServing;
+    }
+
+    const unit = String(portion.measureUnit?.name ?? '').trim() || String(portion.measureUnit?.abbreviation ?? '').trim();
+    const value = this.positiveDecimal(portion.value ?? portion.amount);
+    const base = [value, unit].filter(Boolean).join(' ').trim();
+    const modifier = String(portion.modifier ?? '').trim();
+    return [base, modifier].filter(Boolean).join(', ');
   }
 
   private requiredText(value: string | undefined, message: string): string {

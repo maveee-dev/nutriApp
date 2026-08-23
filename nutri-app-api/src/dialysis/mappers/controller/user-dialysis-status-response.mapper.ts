@@ -5,6 +5,7 @@ export class UserDialysisStatusResponseMapper {
   static toResponseDto(source: UserDialysisStatusSource): UserDialysisStatusResponseDto {
     return {
       status: source.status,
+      modality: source.modality,
       effectiveAt: source.effectiveAt,
       reportedAt: source.reportedAt,
       updatedAt: source.updatedAt,

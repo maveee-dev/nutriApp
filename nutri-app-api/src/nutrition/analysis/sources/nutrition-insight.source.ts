@@ -1,3 +1,5 @@
+import { NutritionTargetProvenance } from '../types/nutrition-targets.type.js';
+
 export type NutritionInsightSeverity = 'warning';
 
 export interface NutritionInsightSource {
@@ -6,4 +8,9 @@ export interface NutritionInsightSource {
   readonly measuredValue: string;
   readonly targetValue: string;
   readonly explanation: string;
+  readonly policyId?: string;
+  readonly policyVersion?: string;
+  readonly provenance?: NutritionTargetProvenance;
+  readonly evaluatorVersion?: string;
+  readonly snapshotId?: string;
 }

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { UsdaFoodDataMapper } from './import/usda-fooddata.mapper.js';
 import { UsdaFoodDataImporter } from './import/usda-fooddata.importer.js';
 import type { UsdaFoodDataRecord } from './import/usda-fooddata.types.js';
+import { seedCuratedMealContent } from './import/curated-meal-content.seed.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
@@ -90,6 +91,9 @@ async function main() {
     console.log(`USDA import complete: ${summary.imported} imported, ${summary.failed} failed.`);
     for (const failure of summary.failures) console.warn(`[USDA import failed ${failure.sourceId}] ${failure.message}`);
   }
+
+  const curated = await seedCuratedMealContent(prisma);
+  console.log(`Curated meal content ready: ${curated.recipes} recipes, ${curated.templates} templates.`);
 }
 
 main()

@@ -10,11 +10,13 @@ import { FindMealsOptions } from '../types/find-meals.option.js';
 import { createPaginationMeta } from '../../common/utils/pagination.util.js';
 import { MealNotFoundError } from '../errors/meal-not-found.error.js';
 import { FindMealsInput } from '../types/find-meals.input.js';
+import { MealEvaluationSnapshotService } from './meal-evaluation-snapshot.service.js';
 
 @Injectable()
 export class MealsService {
   constructor(
-    private readonly mealsRepository: MealsRepository
+    private readonly mealsRepository: MealsRepository,
+    private readonly snapshotService: MealEvaluationSnapshotService,
   ) {}
 
   async create(
@@ -22,7 +24,26 @@ export class MealsService {
   ): Promise<MealDetailSource> {
     this.validateMealItems(input.items);
 
-    return this.mealsRepository.create(input);
+    const meal = await this.mealsRepository.create(input);
+    try {
+      if (typeof this.snapshotService.captureForMealItems === 'function') {
+        await this.snapshotService.captureForMealItems(input.userId, meal.items);
+      } else {
+        await Promise.all(meal.items.map((item) => this.snapshotService.captureForMealItem(input.userId, item)));
+      }
+      return meal;
+    } catch (error) {
+      // A meal without its immutable evaluation snapshots is not a valid
+      // persisted domain result. Remove the newly-created aggregate so a
+      // retry cannot create an un-evaluable meal.
+      try {
+        await this.mealsRepository.delete(meal.id, input.userId);
+      } catch {
+        // Preserve the original capture error; operational monitoring should
+        // surface a cleanup failure separately if the compensating delete fails.
+      }
+      throw error;
+    }
   }
 
   async findMany(
