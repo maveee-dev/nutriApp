@@ -14,6 +14,8 @@ export class MealPlanItemDto {
   mealType!: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
   foodId!: string;
   foodName!: string;
+  foodDisplayName!: string;
+  foodVariantLabel!: string | null;
   servingId!: string;
   servingName!: string;
   servingGrams!: string;

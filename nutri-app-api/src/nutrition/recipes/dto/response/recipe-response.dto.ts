@@ -2,6 +2,8 @@ export class RecipeComponentResponseDto {
   id!: string;
   foodId!: string;
   foodName!: string;
+  foodDisplayName!: string;
+  foodVariantLabel!: string | null;
   servingId!: string | null;
   servingName!: string | null;
   servingGrams!: string | null;

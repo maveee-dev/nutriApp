@@ -25,6 +25,8 @@ export class FoodRecognitionService {
         confidence: detection.confidence,
         foodId: match?.id ?? null,
         foodName: match?.name ?? null,
+        foodDisplayName: match?.displayName ?? null,
+        foodVariantLabel: match?.variantLabel ?? null,
         matchStatus: match ? 'database-match' as const : estimatedNutrition ? 'ai-estimate' as const : 'unmatched' as const,
         nutritionSource: match ? 'canonical-database' as const : estimatedNutrition ? 'ai-estimated' as const : null,
         requiresReview: !match,

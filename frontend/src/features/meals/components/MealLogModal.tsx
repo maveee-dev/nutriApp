@@ -20,6 +20,7 @@ import type { MealType } from '../types/meals.types';
 import type { FoodDetail, Serving } from '@/features/foods/types/foods.types';
 import { preferredServing } from '@/features/foods/utils/serving';
 import { format } from 'date-fns';
+import { mergeMealDraftItem } from '../utils/mealDraft';
 
 export interface MealLogModalProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ interface StagedMealItem {
   id: string; // unique local ID for list rendering
   foodId: string;
   foodName: string;
+  foodDisplayName?: string;
+  foodVariantLabel?: string | null;
   categoryName: string;
   isLoadingDetails: boolean;
   fetchError: string | null;
@@ -94,21 +97,22 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
 
       const defaultServing = preferredServing(availableServings) ?? availableServings[0];
 
-      setStagedItems((prev) =>
-        prev.map((item) => {
-          if (item.id === localId) {
-            return {
-              ...item,
-              isLoadingDetails: false,
-              fetchError: null,
-              servings: availableServings,
-              selectedServingId: defaultServing.id,
-              foodDetail: detail,
-            };
-          }
-          return item;
-        })
-      );
+      setStagedItems((prev) => {
+        const item = prev.find(({ id }) => id === localId);
+        if (!item) return prev;
+
+        return mergeMealDraftItem(
+          prev.filter(({ id }) => id !== localId),
+          {
+            ...item,
+            isLoadingDetails: false,
+            fetchError: null,
+            servings: availableServings,
+            selectedServingId: defaultServing.id,
+            foodDetail: detail,
+          },
+        );
+      });
     } catch (err: unknown) {
       const errorObj = err as { message?: string; status?: number; response?: unknown; data?: unknown; url?: string; stack?: string };
       const status = errorObj?.status;
@@ -143,7 +147,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   };
 
   // When user clicks a food from search results:
-  const handleSelectFood = (foodId: string, foodName: string, categoryName: string) => {
+  const handleSelectFood = (foodId: string, foodName: string, categoryName: string, foodDisplayName?: string, foodVariantLabel?: string | null) => {
     const localId = Math.random().toString(36).substring(2, 9);
 
     // Create optimistic staged item
@@ -151,6 +155,8 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
       id: localId,
       foodId,
       foodName,
+      foodDisplayName,
+      foodVariantLabel,
       categoryName,
       isLoadingDetails: true,
       fetchError: null,
@@ -170,9 +176,15 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   };
 
   const handleServingChange = (localId: string, servingId: string) => {
-    setStagedItems((prev) =>
-      prev.map((item) => (item.id === localId ? { ...item, selectedServingId: servingId } : item))
-    );
+    setStagedItems((prev) => {
+      const item = prev.find(({ id }) => id === localId);
+      if (!item) return prev;
+
+      return mergeMealDraftItem(
+        prev.filter(({ id }) => id !== localId),
+        { ...item, selectedServingId: servingId },
+      );
+    });
   };
 
   const handleQuantityChange = (localId: string, quantity: string) => {
@@ -304,7 +316,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
             {inputMode === 'search' ? <><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Search & Add Foods</label><Input placeholder="Type to search foods (e.g. Chicken, Rice, Banana)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<Search size={16} />} autoComplete="off" /></> : <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }}><Camera size={16} /> Choose image<input type="file" accept="image/*" capture="environment" hidden onChange={(event) => handleRecognitionFile(event.target.files?.[0])} /></label><Button type="button" size="sm" variant="primary" onClick={handleRecognize} disabled={!recognitionImage || foodRecognition.isPending}>Recognize</Button>{recognitionImage && <Badge variant="success">Image ready</Badge>}</div>}
 
             {inputMode === 'scan' && foodRecognition.isPending && <LoadingSpinner label="Finding foods..." size={18} />}
-            {inputMode === 'scan' && foodRecognition.data?.candidates.map((candidate) => <div key={`${candidate.label}-${candidate.foodId ?? 'unmatched'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-sm)' }}><span><strong>{candidate.foodName ?? candidate.label}</strong><small style={{ display: 'block', color: 'var(--text-muted)' }}>{Math.round(candidate.confidence * 100)}% · {candidate.nutritionSource === 'canonical-database' ? 'Canonical nutrition' : 'Review required'}</small></span>{candidate.foodId ? <Button type="button" size="sm" variant="secondary" onClick={() => handleSelectFood(candidate.foodId!, candidate.foodName ?? candidate.label, 'Recognized food')}>Confirm</Button> : <Badge variant="warning">Replace in catalog</Badge>}</div>)}
+            {inputMode === 'scan' && foodRecognition.data?.candidates.map((candidate) => <div key={`${candidate.label}-${candidate.foodId ?? 'unmatched'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-sm)' }}><span><strong>{candidate.foodDisplayName ?? candidate.foodName ?? candidate.label}</strong>{candidate.foodVariantLabel && <small style={{ display: 'block', color: 'var(--text-muted)' }}>{candidate.foodVariantLabel}</small>}<small style={{ display: 'block', color: 'var(--text-muted)' }}>{Math.round(candidate.confidence * 100)}% · {candidate.nutritionSource === 'canonical-database' ? 'Canonical nutrition' : 'Review required'}</small></span>{candidate.foodId ? <Button type="button" size="sm" variant="secondary" onClick={() => handleSelectFood(candidate.foodId!, candidate.foodName ?? candidate.label, 'Recognized food', candidate.foodDisplayName ?? undefined, candidate.foodVariantLabel)}>Confirm</Button> : <Badge variant="warning">Replace in catalog</Badge>}</div>)}
 
             {/* Live Search Dropdown */}
             {isFoodsLoading && searchQuery ? (
@@ -330,7 +342,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                   <button
                     key={food.id}
                     type="button"
-                    onClick={() => handleSelectFood(food.id, food.name, food.category?.name || 'General')}
+                    onClick={() => handleSelectFood(food.id, food.name, food.category?.name || 'General', food.displayName, food.variantLabel)}
                     style={{
                       textAlign: 'left',
                       padding: '10px 12px',
@@ -351,7 +363,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Plus size={16} color="var(--color-primary)" />
-                      <span>{food.name}</span>
+                      <span><span style={{ display: 'block' }}>{food.displayName ?? food.name}</span>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 500 }}>{food.variantLabel}</small>}</span>
                     </div>
                     <Badge variant="neutral" size="sm">
                       {food.category.name}
@@ -424,8 +436,9 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '0.975rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                            {item.foodName}
+                            {item.foodDisplayName ?? item.foodName}
                           </span>
+                          {item.foodVariantLabel && <small style={{ color: 'var(--text-muted)' }}>{item.foodVariantLabel}</small>}
                           <Badge variant="neutral" size="sm">
                             {item.categoryName}
                           </Badge>
@@ -544,7 +557,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                               <QuantityStepper
                                 value={item.quantity}
                                 onChange={(val) => handleQuantityChange(item.id, val)}
-                                step={0.5}
+                                step={0.25}
                                 min={0.25}
                               />
                             </div>

@@ -14,6 +14,8 @@ export interface MealTemplateSlotSource {
   readonly recipeVersion: number | null;
   readonly foodId: string | null;
   readonly foodName: string | null;
+  readonly foodDisplayName: string | null;
+  readonly foodVariantLabel: string | null;
   readonly servingId: string | null;
   readonly servingName: string | null;
   readonly quantity: string | null;

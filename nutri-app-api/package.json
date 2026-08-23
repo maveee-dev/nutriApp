@@ -20,7 +20,10 @@
     "test:debug": "node --experimental-vm-modules --inspect-brk node_modules/jest/bin/jest.js --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "validate:food-evaluation": "tsx prisma/import/validate-food-evaluations.ts",
-    "audit:food-evaluation-coverage": "tsx prisma/audit-food-evaluation-coverage.ts"
+    "audit:food-evaluation-coverage": "tsx prisma/audit-food-evaluation-coverage.ts",
+    "audit:food-presentation-quality": "tsx prisma/audit-food-presentation-quality.ts",
+    "audit:food-presentation-grammar": "tsx prisma/audit-food-presentation-grammar-analysis.ts",
+    "audit:food-search-quality": "tsx prisma/audit-food-search-quality.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

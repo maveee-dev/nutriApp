@@ -7,6 +7,7 @@ import { tofoodDetailSource, toFoodSummarySource } from '../mappers/repository/f
 import { FOOD_DETAIL_INCLUDE, FOOD_SUMMARY_INCLUDE } from './food.prisma.js';
 import { FindManyResult } from "../../../common/interfaces/find-many-result.interface.js";
 import { FoodDetailSource } from "../sources/food-detail.source.js";
+import { rankFoodSearchResults } from '../services/food-search-ranker.js';
 
 @Injectable()
 export class FoodsRepository {
@@ -65,13 +66,30 @@ export class FoodsRepository {
     return foods.map(toFoodSummarySource);
   }
 
+  async findSearchCandidates(
+    options: Omit<FindFoodsOptions, 'skip' | 'take'>,
+  ): Promise<FoodSummarySource[]> {
+    const foods = await this.prisma.food.findMany({
+      where: this.buildWhere(options),
+      include: FOOD_SUMMARY_INCLUDE,
+    });
+
+    return foods.map(toFoodSummarySource);
+  }
+
   async findManyWithCount(
     options: FindFoodsOptions,
   ): Promise<FindManyResult<FoodSummarySource>> {
-    const [ items, totalItems ] = await Promise.all([
-      this.findMany(options),
-      this.count(options),
-    ]);
+    if (options.search?.trim()) {
+      const candidates = await this.findSearchCandidates(options);
+      const ranked = rankFoodSearchResults(candidates, options.search);
+      return {
+        items: ranked.slice(options.skip, options.skip + options.take),
+        totalItems: ranked.length,
+      };
+    }
+
+    const [ items, totalItems ] = await Promise.all([this.findMany(options), this.count(options)]);
 
     return {
       items,
@@ -96,25 +114,67 @@ export class FoodsRepository {
   }
 
   private buildWhere(
-    options: FindFoodsOptions
+    options: Pick<FindFoodsOptions, 'search'>
   ): Prisma.FoodWhereInput {
     const where: Prisma.FoodWhereInput = {};
 
-    if (options.search) {
-      where.OR =[
+    if (options.search?.trim()) {
+      const search = options.search.trim();
+      const searchFields = (term: string): Prisma.FoodWhereInput[] => [
         {
           name: {
-            contains: options.search,
+            contains: term,
             mode: 'insensitive',
           },
         },
         {
           description: {
-            contains: options.search,
+            contains: term,
             mode: 'insensitive',
           },
         },
+        {
+          presentation: {
+            is: {
+              displayNameOverride: {
+                contains: term,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          presentation: {
+            is: {
+              variantLabelOverride: {
+                contains: term,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          presentation: {
+            is: {
+              aliases: {
+                some: {
+                  alias: {
+                    contains: term,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          },
+        },
       ];
+      const terms = search.split(/\s+/).filter(Boolean);
+
+      // Derived names are deliberately not persisted. Requiring each query
+      // token to occur in canonical/source metadata makes multi-word searches
+      // such as "chicken breast" discover derived display names without
+      // moving parsing into the database or duplicating presentation data.
+      where.AND = terms.map((term) => ({ OR: searchFields(term) }));
     }
 
     return where;

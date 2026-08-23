@@ -7,7 +7,17 @@ export const RECIPE_DETAIL_INCLUDE = {
       components: {
         orderBy: { displayOrder: 'asc' },
         include: {
-          food: { select: { id: true, name: true } },
+          food: {
+            select: {
+              id: true,
+              name: true,
+              presentation: {
+                include: {
+                  aliases: true,
+                },
+              },
+            },
+          },
           serving: { select: { id: true, name: true, grams: true } },
         },
       },

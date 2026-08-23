@@ -9,7 +9,15 @@ export const MEAL_DETAIL_INCLUDE = {
     include: {
       serving: {
         include: {
-          food: true,
+          food: {
+            include: {
+              presentation: {
+                include: {
+                  aliases: true,
+                },
+              },
+            },
+          },
         },
       },
     },

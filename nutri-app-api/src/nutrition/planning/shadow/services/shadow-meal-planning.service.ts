@@ -7,6 +7,7 @@ import type { MealTemplateSlotSource, MealTemplateSource, MealTemplateVersionSou
 import { RecipeEvaluationService } from '../../../recipes/services/recipe-evaluation.service.js';
 import type { RecipeComponentSource, RecipeVersionSource } from '../../../recipes/types/recipe.source.js';
 import { RecipesService } from '../../../recipes/services/recipes.service.js';
+import { normalizeServingDisplayName } from '../../../foods/services/food-presentation.service.js';
 import type { ShadowMealCandidateSource, ShadowMealPlanningContext, ShadowMealPlanningResultSource, ShadowMealSubstitutionSource } from '../types/shadow-meal-planning.source.js';
 import type { ShadowPlanningInstrumentation } from './shadow-planning-instrumentation.js';
 
@@ -332,7 +333,7 @@ export class ShadowMealPlanningService {
     const quantity = slot.quantity ?? (unit === 'GRAM' ? '100' : '1');
     return {
       id: `food:${food.id}:${servingId ?? unit}`,
-      label: food.name,
+      label: food.displayName ?? food.name,
       source: 'canonical-food',
       recipeId: null,
       recipeVersion: null,
@@ -341,8 +342,10 @@ export class ShadowMealPlanningService {
         id: `${slot.id}:food:${food.id}`,
         foodId: food.id,
         foodName: food.name,
+        foodDisplayName: food.displayName ?? food.name,
+        foodVariantLabel: food.variantLabel ?? null,
         servingId,
-        servingName: serving?.name ?? null,
+        servingName: serving == null ? null : normalizeServingDisplayName(serving.name, food.displayName ?? food.name),
         servingGrams: serving?.grams ?? null,
         role: slot.role as RecipeComponentRole,
         quantity,

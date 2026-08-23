@@ -8,7 +8,13 @@ export const MEAL_TEMPLATE_DETAIL_INCLUDE = {
         orderBy: { displayOrder: 'asc' },
         include: {
           recipeVersion: { select: { id: true, recipeId: true, name: true, version: true } },
-          food: { select: { id: true, name: true } },
+          food: {
+            select: {
+              id: true,
+              name: true,
+              presentation: { include: { aliases: true } },
+            },
+          },
           serving: { select: { id: true, name: true } },
         },
       },

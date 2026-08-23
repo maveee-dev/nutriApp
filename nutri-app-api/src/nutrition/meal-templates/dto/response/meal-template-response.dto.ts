@@ -12,6 +12,8 @@ export class MealTemplateSlotResponseDto {
   recipeVersion!: number | null;
   foodId!: string | null;
   foodName!: string | null;
+  foodDisplayName!: string | null;
+  foodVariantLabel!: string | null;
   servingId!: string | null;
   servingName!: string | null;
   quantity!: string | null;

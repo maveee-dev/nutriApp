@@ -2,10 +2,20 @@ import { Prisma } from '../../../../generated/prisma/client.js';
 
 export const FOOD_SUMMARY_INCLUDE = {
   category: true,
+  presentation: {
+    include: {
+      aliases: true,
+    },
+  },
 } satisfies Prisma.FoodInclude;
 
 export const FOOD_DETAIL_INCLUDE = {
   category: true,
+  presentation: {
+    include: {
+      aliases: true,
+    },
+  },
   servings: true,
   nutrients: {
     include: {

@@ -10,6 +10,8 @@ export class FoodRecognitionCandidateDto {
   confidence!: number;
   foodId!: string | null;
   foodName!: string | null;
+  foodDisplayName!: string | null;
+  foodVariantLabel!: string | null;
   matchStatus!: 'database-match' | 'ai-estimate' | 'unmatched';
   nutritionSource!: 'canonical-database' | 'ai-estimated' | null;
   requiresReview!: boolean;

@@ -5,6 +5,8 @@ import { ServingResponseDto } from "../../../servings/dto/response/serving-respo
 export class FoodDetailResponseDto {
   id!: string;
   name!: string;
+  displayName!: string;
+  variantLabel!: string | null;
   category!: FoodCategoryResponseDto;
   servings!: readonly ServingResponseDto[];
   nutrients!: readonly FoodNutrientResponseDto[];

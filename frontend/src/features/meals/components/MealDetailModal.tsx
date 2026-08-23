@@ -58,8 +58,9 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({ mealId, onClos
               >
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {item.food.name}
+                    {item.food.displayName ?? item.food.name}
                   </h4>
+                  {item.food.variantLabel && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.food.variantLabel}</p>}
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                     Serving: {item.serving.name} ({item.serving.grams}g basis)
                   </p>

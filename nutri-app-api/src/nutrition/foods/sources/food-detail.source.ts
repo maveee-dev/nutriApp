@@ -8,6 +8,8 @@ export interface FoodDetailSource {
   readonly source?: string;
   readonly sourceId?: string | null;
   readonly name: string;
+  readonly displayName?: string;
+  readonly variantLabel?: string | null;
   readonly category: FoodCategorySource;
   readonly planningClass?: FoodPlanningClass;
   readonly servings: readonly ServingSource[];

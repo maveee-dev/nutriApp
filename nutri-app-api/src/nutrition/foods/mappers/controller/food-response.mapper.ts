@@ -11,6 +11,8 @@ export class FoodResponseMapper {
     return {
       id: source.id,
       name: source.name,
+      displayName: source.displayName ?? source.name,
+      variantLabel: source.variantLabel ?? null,
       category: FoodCategoryResponseMapper.toFoodCategoryDto(source.category),
       servings: source.servings.map(ServingResponseMapper.toServingDto),
       nutrients: source.nutrients.map(NutrientResponseMapper.toFoodNutrientDto),
@@ -23,6 +25,8 @@ export class FoodResponseMapper {
     return {
       id: source.id,
       name: source.name,
+      displayName: source.displayName ?? source.name,
+      variantLabel: source.variantLabel ?? null,
       category: source.category,
     };
   }

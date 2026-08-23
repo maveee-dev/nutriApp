@@ -21,6 +21,8 @@ export interface MealSummary {
 export interface MealItemFood {
   id: string;
   name: string;
+  displayName?: string;
+  variantLabel?: string | null;
 }
 
 export interface MealItemServing {

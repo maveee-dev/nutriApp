@@ -15,6 +15,7 @@ describe('UsdaFoodDataImporter', () => {
     const nutrients = new Map<string, { id: string; sourceId: string }>();
     const servingCreates: any[] = [];
     const servingDeletes: string[] = [];
+    const foodUpserts: any[] = [];
     const tx = {
       foodCategory: {
         findMany: async () => [...categories.values()],
@@ -23,7 +24,10 @@ describe('UsdaFoodDataImporter', () => {
         },
       },
       food: {
-        upsert: async () => ({ id: 'food-1' }),
+        upsert: async (args: any) => {
+          foodUpserts.push(args);
+          return { id: 'food-1' };
+        },
       },
       foodNutrient: {
         deleteMany: async () => undefined,
@@ -51,6 +55,7 @@ describe('UsdaFoodDataImporter', () => {
       importer: new UsdaFoodDataImporter(tx as never),
       servingCreates,
       servingDeletes,
+      foodUpserts,
     };
   }
 
@@ -65,6 +70,14 @@ describe('UsdaFoodDataImporter', () => {
     await expect(state.importer.import([record])).resolves.toEqual({ imported: 1, failed: 0, failures: [] });
     expect(state.servingCreates).toHaveLength(0);
     expect(state.servingDeletes).toHaveLength(0);
+  });
+
+  it('does not overwrite presentation metadata during a USDA re-import', async () => {
+    const state = createState();
+
+    await expect(state.importer.import([record])).resolves.toEqual({ imported: 1, failed: 0, failures: [] });
+    expect(state.foodUpserts[0]?.update).not.toHaveProperty('presentation');
+    expect(state.foodUpserts[0]?.create).not.toHaveProperty('presentation');
   });
 
   it('creates a new serving row for a genuinely new imported serving', async () => {

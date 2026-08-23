@@ -308,6 +308,7 @@ model Food {
 
   servings    Serving[]
   nutrients   FoodNutrient[]
+  presentation FoodPresentation?
   recipeComponents RecipeComponent[]
   mealTemplateSlots MealTemplateSlot[]
 
@@ -337,6 +338,33 @@ model Serving {
 
   @@unique([foodId, name])
   @@index([foodId])
+}
+
+model FoodPresentation {
+  id                    String      @id @default(uuid())
+  foodId                String      @unique
+  food                  Food        @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  displayNameOverride   String?
+  variantLabelOverride  String?
+  searchPriority        Int         @default(0)
+  aliases               FoodAlias[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([searchPriority])
+}
+
+model FoodAlias {
+  id                  String          @id @default(uuid())
+  foodPresentationId  String
+  presentation        FoodPresentation @relation(fields: [foodPresentationId], references: [id], onDelete: Cascade)
+  alias               String
+  normalizedAlias     String
+  priority            Int             @default(0)
+  createdAt           DateTime        @default(now())
+
+  @@unique([foodPresentationId, normalizedAlias])
+  @@index([normalizedAlias])
 }
 
 model Recipe {

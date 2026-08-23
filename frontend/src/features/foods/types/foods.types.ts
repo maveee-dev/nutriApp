@@ -25,12 +25,16 @@ export interface FoodNutrient {
 export interface FoodSummary {
   id: string;
   name: string;
+  displayName?: string;
+  variantLabel?: string | null;
   category: FoodCategory;
 }
 
 export interface FoodDetail {
   id: string;
   name: string;
+  displayName?: string;
+  variantLabel?: string | null;
   category: FoodCategory;
   servings: Serving[];
   nutrients: FoodNutrient[];

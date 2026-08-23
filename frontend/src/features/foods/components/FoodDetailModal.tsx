@@ -39,8 +39,8 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ foodId, onClos
       <Modal
         isOpen={!!foodId}
         onClose={onClose}
-        title={food?.name || 'Food Details'}
-        subtitle={food?.category?.name ? `Category: ${food.category.name}` : undefined}
+        title={food?.displayName || food?.name || 'Food Details'}
+        subtitle={food ? [food.variantLabel, food.category?.name ? `Category: ${food.category.name}` : null].filter(Boolean).join(' · ') : undefined}
         maxWidth="520px"
       >
         {isLoading ? (
@@ -154,6 +154,14 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ foodId, onClos
                 ))}
               </div>
             </details>
+            {food.name !== (food.displayName ?? food.name) && <details>
+              <summary style={{ color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                Source information
+              </summary>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 }}>
+                Canonical name: {food.name}
+              </p>
+            </details>}
           </div>
         ) : null}
       </Modal>

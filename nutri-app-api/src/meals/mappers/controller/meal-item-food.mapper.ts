@@ -8,6 +8,8 @@ export class MealItemFoodMapper {
     return {
       id: source.id,
       name: source.name,
+      displayName: source.displayName ?? source.name,
+      variantLabel: source.variantLabel ?? null,
     };
   }
 }

@@ -56,3 +56,18 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Audit reports
+nutri-app-api/audit/
+nutri-app-api/*audit*.json
+nutri-app-api/*audit*.txt
+
+# Generated audit reports
+food-presentation-audit.json
+food-presentation-audit.txt
+food-presentation-quality.json
+food-presentation-quality.txt
+food-search-quality.json
+food-search-quality.txt
+food-evaluation-validation-report.json
+food-evaluation-validation-report.txt

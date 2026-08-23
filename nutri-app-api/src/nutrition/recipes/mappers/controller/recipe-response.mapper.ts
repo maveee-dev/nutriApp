@@ -26,7 +26,11 @@ export class RecipeResponseMapper {
         approvedAt: version.approvedAt,
         approvedByUserId: version.approvedByUserId,
         createdAt: version.createdAt,
-        components: version.components.map((component) => ({ ...component })),
+        components: version.components.map((component) => ({
+          ...component,
+          foodDisplayName: component.foodDisplayName ?? component.foodName,
+          foodVariantLabel: component.foodVariantLabel ?? null,
+        })),
       })),
     };
   }

@@ -72,7 +72,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Can I eat this?"
-      subtitle={`${food.name} • ${quantity} ${selectedServing.name}`}
+      subtitle={`${food.displayName ?? food.name}${food.variantLabel ? ` · ${food.variantLabel}` : ''} • ${quantity} ${selectedServing.name}`}
       maxWidth="480px"
     >
       {isPending ? (

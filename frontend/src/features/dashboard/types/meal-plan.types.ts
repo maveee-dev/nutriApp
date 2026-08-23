@@ -13,6 +13,8 @@ export interface MealPlanItem {
   mealType: MealType;
   foodId: string;
   foodName: string;
+  foodDisplayName?: string;
+  foodVariantLabel?: string | null;
   servingId: string;
   servingName: string;
   servingGrams: string;

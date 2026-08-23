@@ -16,20 +16,32 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
   onChange,
   min = 0.25,
   max = 100,
-  step = 0.5,
+  step = 0.25,
   unitLabel = '',
   readOnly = true,
 }) => {
   const numVal = parseFloat(String(value)) || 0;
+  const quantityScale = 100;
+
+  const steppedValue = (delta: number): string => {
+    const currentUnits = Math.round(numVal * quantityScale);
+    const deltaUnits = Math.round(delta * quantityScale);
+    const minUnits = Math.round(min * quantityScale);
+    const maxUnits = Math.round(max * quantityScale);
+    const nextUnits = Math.min(
+      maxUnits,
+      Math.max(minUnits, currentUnits + deltaUnits),
+    );
+
+    return (nextUnits / quantityScale).toFixed(2);
+  };
 
   const handleDecrement = () => {
-    const next = Math.max(min, Math.round((numVal - step) * 100) / 100);
-    onChange(String(next));
+    onChange(steppedValue(-step));
   };
 
   const handleIncrement = () => {
-    const next = Math.min(max, Math.round((numVal + step) * 100) / 100);
-    onChange(String(next));
+    onChange(steppedValue(step));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +65,7 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
       >
         <button
           type="button"
+          aria-label="Decrease quantity"
           onClick={handleDecrement}
           disabled={numVal <= min}
           style={{
@@ -104,6 +117,7 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
 
         <button
           type="button"
+          aria-label="Increase quantity"
           onClick={handleIncrement}
           disabled={numVal >= max}
           style={{

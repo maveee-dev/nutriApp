@@ -85,8 +85,9 @@ export const FoodsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '0.975rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {food.name}
+                    {food.displayName ?? food.name}
                   </h3>
+                  {food.variantLabel && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{food.variantLabel}</p>}
                   <Badge variant="neutral" size="sm" style={{ marginTop: '2px' }}>
                     {food.category.name}
                   </Badge>

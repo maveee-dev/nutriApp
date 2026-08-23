@@ -4,6 +4,8 @@ export interface RecipeComponentSource {
   readonly id: string;
   readonly foodId: string;
   readonly foodName: string;
+  readonly foodDisplayName?: string;
+  readonly foodVariantLabel?: string | null;
   readonly servingId: string | null;
   readonly servingName: string | null;
   readonly servingGrams: string | null;
