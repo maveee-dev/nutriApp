@@ -62,6 +62,28 @@ describe('FoodEntityResolver', () => {
     });
   });
 
+  it('keeps both exact comparison entities instead of resolving the first one', async () => {
+    const foodsService = {
+      findMany: jest.fn(async (input: { search?: string }) => ({
+        items: input.search === 'tilapia'
+          ? [food('tilapia-1', 'Tilapia')]
+          : input.search === 'bangus'
+            ? [food('bangus-1', 'Bangus')]
+            : [],
+        meta: {},
+      })),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
+
+    await expect(resolver.resolve('user-1', 'Between tilapia and bangus, which is healthier?')).resolves.toMatchObject({
+      status: 'ambiguous',
+      candidates: expect.arrayContaining([
+        expect.objectContaining({ foodId: 'tilapia-1' }),
+        expect.objectContaining({ foodId: 'bangus-1' }),
+      ]),
+    });
+  });
+
   it('returns not-found when only a weak single prefix match exists', async () => {
     const foodsService = {
       findMany: jest.fn().mockResolvedValue({ items: [food('food-1', 'Chicken Bread')], meta: {} }),

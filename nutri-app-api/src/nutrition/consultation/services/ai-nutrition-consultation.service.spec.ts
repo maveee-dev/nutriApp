@@ -16,13 +16,14 @@ const deterministic = {
 };
 
 describe('AiNutritionConsultationService', () => {
-  it('preserves deterministic evidence while replacing only the explanation', async () => {
+  it('preserves deterministic evidence while adding a separate explanation', async () => {
     const provider = { explain: jest.fn().mockResolvedValue({ answer: 'Here is a warmer explanation.', providerId: 'test-provider-v1' }) };
     const service = new AiNutritionConsultationService({ consult: jest.fn().mockResolvedValue(deterministic) } as never, provider);
 
     const result = await service.consult('user-1', 'What should I improve?');
 
-    expect(result.answer).toBe('Here is a warmer explanation.');
+    expect(result.answer).toBe(deterministic.answer);
+    expect(result.aiExplanation).toBe('Here is a warmer explanation.');
     expect(result.assistantMode).toBe('ai-assisted');
     expect(result.aiAssisted).toBe(true);
     expect(result.aiProvider).toBe('test-provider-v1');
@@ -51,6 +52,13 @@ describe('AiNutritionConsultationService', () => {
     const service = new AiNutritionConsultationService({ consult: jest.fn().mockResolvedValue(deterministic) } as never, provider);
 
     await expect(service.consult('user-1', 'What should I improve?')).resolves.toBe(deterministic);
+  });
+
+  it('returns deterministic evidence unchanged when the provider refuses', async () => {
+    const provider = { explain: jest.fn().mockResolvedValue({ answer: 'I cannot explain this.', providerId: 'test-provider-v1', refused: true }) };
+    const service = new AiNutritionConsultationService({ consult: jest.fn().mockResolvedValue(deterministic) } as never, provider);
+
+    await expect(service.consult('user-1', 'Why is sodium important?')).resolves.toBe(deterministic);
   });
 
   it.each([
@@ -90,7 +98,11 @@ describe('AiNutritionConsultationService', () => {
     const provider = { explain: jest.fn() };
     const deterministicResponse = {
       ...deterministic,
-      foodResolution: { status, query: 'Can I eat egg?', candidates: [] },
+      foodResolution: {
+        status,
+        query: 'Can I eat egg?',
+        candidates: [],
+      },
     };
     const service = new AiNutritionConsultationService(
       { consult: jest.fn().mockResolvedValue(deterministicResponse) } as never,
@@ -102,5 +114,27 @@ describe('AiNutritionConsultationService', () => {
 
     expect(result).toBe(deterministicResponse);
     expect(provider.explain).not.toHaveBeenCalled();
+  });
+
+  it('adds an AI explanation for evaluated food evidence without replacing the deterministic answer', async () => {
+    const provider = { explain: jest.fn().mockResolvedValue({ answer: 'Based on the supplied evidence, this food fits your active guidance.', providerId: 'test-provider-v1' }) };
+    const deterministicResponse = {
+      ...deterministic,
+      answer: 'Deterministic food answer.',
+      foodResolution: { status: 'resolved' as const, query: 'Can I eat egg?', candidates: [{ kind: 'food' as const, foodId: 'egg-1', displayName: 'Egg', variantLabel: null, matchType: 'display-exact' as const, confidence: 'high' as const }] },
+      foodEvaluation: { foodId: 'egg-1' },
+    };
+    const service = new AiNutritionConsultationService(
+      { consult: jest.fn().mockResolvedValue(deterministicResponse) } as never,
+      provider,
+      new ConsultationIntentRouter(),
+    );
+
+    const result = await service.consult('user-1', 'Can I eat egg?');
+
+    expect(provider.explain).toHaveBeenCalledTimes(1);
+    expect(result.answer).toBe('Deterministic food answer.');
+    expect(result.aiExplanation).toBe('Based on the supplied evidence, this food fits your active guidance.');
+    expect(result.recommendations).toBe(deterministicResponse.recommendations);
   });
 });

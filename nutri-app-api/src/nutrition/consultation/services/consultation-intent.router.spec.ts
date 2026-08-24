@@ -16,6 +16,21 @@ describe('ConsultationIntentRouter', () => {
     expect(router.route(question)).toMatchObject({ lane });
   });
 
+  it.each([
+    'What foods are great for me?',
+    'Healthy foods',
+    'Good foods',
+    'Best foods for me',
+    'Foods I should eat',
+    'What can I eat?',
+    'Meals for me',
+  ])('routes broad food request "%s" to recommendation', (question) => {
+    expect(router.route(question)).toMatchObject({
+      lane: 'recommendation',
+      aiPolicy: 'optional',
+    });
+  });
+
   it('applies creator precedence before unrelated or education rules', () => {
     expect(router.route('Who is your developer?').lane).toBe('creator');
     expect(router.route('Who created you for nutrition?').lane).toBe('creator');

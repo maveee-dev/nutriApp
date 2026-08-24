@@ -44,7 +44,7 @@ export class FoodEntityResolver {
       return { status: 'not-found', query: question, candidates: [] };
     }
 
-    const candidates = await this.findFoodCandidates(phrases);
+    const candidates = await this.findFoodCandidates(phrases, isComparisonQuestion(question));
     const recipeCandidates = candidates.length === 0
       ? await this.findApprovedRecipeCandidates(userId, phrases)
       : [];
@@ -68,7 +68,10 @@ export class FoodEntityResolver {
     };
   }
 
-  private async findFoodCandidates(phrases: readonly string[]): Promise<FoodEntityCandidate[]> {
+  private async findFoodCandidates(
+    phrases: readonly string[],
+    collectAllConfidentMatches = false,
+  ): Promise<FoodEntityCandidate[]> {
     const ranked: RankedCandidate[] = [];
     const seen = new Set<string>();
 
@@ -98,7 +101,7 @@ export class FoodEntityResolver {
         });
       });
 
-      if (ranked.some((item) => item.candidate.confidence === 'high')) break;
+      if (!collectAllConfidentMatches && ranked.some((item) => item.candidate.confidence === 'high')) break;
     }
 
     return ranked
@@ -133,6 +136,10 @@ export class FoodEntityResolver {
 
     return candidates.slice(0, MAX_CANDIDATES);
   }
+}
+
+function isComparisonQuestion(question: string): boolean {
+  return /\b(?:between|compare|versus|vs)\b/i.test(question);
 }
 
 function extractCandidatePhrases(question: string): string[] {

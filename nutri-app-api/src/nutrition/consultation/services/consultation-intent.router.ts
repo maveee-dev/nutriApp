@@ -97,7 +97,7 @@ function isUnrelatedRequest(question: string, recentContext: string): boolean {
     return true;
   }
 
-  if (isNutritionQuestion(question)) return false;
+  if (isNutritionQuestion(question) || isRecommendationQuestion(question)) return false;
 
   // A short follow-up can omit nutrition terms, but only inherits the
   // previous context when it is phrased as a conversational follow-up.
@@ -121,7 +121,19 @@ function isMealProgressQuestion(question: string): boolean {
 }
 
 function isRecommendationQuestion(question: string): boolean {
-  return /\b(?:recommend|recommendation|what should i|what can i|what do i choose|what foods? (?:are|should)|next meal|avoid|guidance|suggest)\b/.test(question);
+  const explicitRecommendation = /\b(?:recommend|recommendation|what should i|what can i|what do i choose|next meal|avoid|guidance|suggest)\b/;
+  const broadFoodRequest = /\b(?:healthy|good|best|great|recommended|suitable|appropriate)\s+(?:food|foods|meals?)\b/;
+  const foodGoalRequest = /\b(?:food|foods|meals?)\s+(?:i|we)\s+(?:should|can|could|need to|ought to)\s+(?:eat|choose|have|include)\b/;
+  const foodForUserRequest = /\b(?:food|foods|meals?)\s+for\s+(?:me|my)\b/;
+  const foodChoiceRequest = /\bwhat\s+(?:food|foods|can i eat|should i eat|could i eat)\b/;
+  const foodToEatRequest = /\b(?:food|foods|meals?)\s+to\s+(?:eat|choose|have|include)\b/;
+
+  return explicitRecommendation.test(question)
+    || broadFoodRequest.test(question)
+    || foodGoalRequest.test(question)
+    || foodForUserRequest.test(question)
+    || foodChoiceRequest.test(question)
+    || foodToEatRequest.test(question);
 }
 
 function isConversationalFollowUp(question: string): boolean {

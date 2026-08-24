@@ -92,6 +92,25 @@ describe('NutritionConsultationService', () => {
     expect(result.mealContext).toBe('available');
   });
 
+  it('routes broad food requests through deterministic recommendations', async () => {
+    const recommendationService = { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) };
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue({ ...summary, mealCount: 0 }) } as never,
+      recommendationService as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      foodEntityResolver,
+    );
+
+    const result = await service.consult('user-1', 'Healthy foods', '2026-08-19');
+
+    expect(result.intent).toBe('recommendation');
+    expect(result.mealContext).toBe('notRequired');
+    expect(recommendationService.recommendDaily).toHaveBeenCalled();
+    expect(result.foodResolution).toBeUndefined();
+    expect(result.answer).not.toContain('nutrition assistant');
+  });
+
   it('exposes deterministic food ambiguity without inventing an evaluation', async () => {
     const resolver = {
       resolve: jest.fn().mockResolvedValue({
@@ -115,6 +134,71 @@ describe('NutritionConsultationService', () => {
 
     expect(result.foodResolution?.status).toBe('ambiguous');
     expect(result.answer).toContain('several possible foods');
+  });
+
+  it('exposes deterministic food evaluation for a confident food match', async () => {
+    const resolver = {
+      resolve: jest.fn().mockResolvedValue({
+        status: 'resolved',
+        query: 'Can I eat egg?',
+        candidates: [{ kind: 'food', foodId: 'egg-1', displayName: 'Egg', variantLabel: 'Large', matchType: 'display-exact', confidence: 'high' }],
+      }),
+    };
+    const foodEvaluation = {
+      evaluate: jest.fn().mockResolvedValue({
+        foodId: 'egg-1',
+        displayName: 'Egg',
+        variantLabel: 'Large',
+        serving: { id: 'serving-1', name: '1 large egg', grams: '50', quantity: '1' },
+        evaluation: { score: 100, evaluationStatus: 'evaluated', coverage: 100, reasons: [], contributions: [], deferredPolicies: [] },
+        targetCalculation: { targets: summary.targets, adjustments: [], deferredPolicies: [], targetProvenance: summary.targetProvenance },
+        policySetFingerprint: 'policy-set-1',
+      }),
+    };
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue(summary) } as never,
+      { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      resolver as never,
+      foodEvaluation as never,
+    );
+
+    const result = await service.consult('user-1', 'Can I eat egg?', '2026-08-19');
+
+    expect(foodEvaluation.evaluate).toHaveBeenCalledWith('user-1', expect.objectContaining({ status: 'resolved' }));
+    expect(result.foodEvaluation).toMatchObject({
+      foodId: 'egg-1',
+      serving: { name: '1 large egg', grams: '50' },
+      evaluation: { score: 100, coverage: 100 },
+      policySetFingerprint: 'policy-set-1',
+    });
+    expect(result.answer).toContain('compatibility score is 100/100');
+  });
+
+  it('does not evaluate an approved recipe entity before recipe evaluation is implemented', async () => {
+    const resolver = {
+      resolve: jest.fn().mockResolvedValue({
+        status: 'resolved',
+        query: 'Can I eat adobo?',
+        candidates: [{ kind: 'approved-recipe', recipeId: 'recipe-1', recipeVersionId: 'version-1', displayName: 'Chicken Adobo', variantLabel: null, matchType: 'recipe-exact', confidence: 'high' }],
+      }),
+    };
+    const foodEvaluation = { evaluate: jest.fn().mockResolvedValue(undefined) };
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue(summary) } as never,
+      { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      resolver as never,
+      foodEvaluation as never,
+    );
+
+    const result = await service.consult('user-1', 'Can I eat adobo?', '2026-08-19');
+
+    expect(foodEvaluation.evaluate).toHaveBeenCalledWith('user-1', expect.objectContaining({ status: 'resolved' }));
+    expect(result.foodEvaluation).toBeUndefined();
+    expect(result.answer).toContain('Recipe component evaluation is not available yet');
   });
 
   it('uses historical replay projections for a past consultation date when available', async () => {

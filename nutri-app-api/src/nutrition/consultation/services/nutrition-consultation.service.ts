@@ -8,6 +8,7 @@ import { DailyNutritionSummarySource } from '../../analysis/types/daily-nutritio
 import { ConsultationLaboratoryEvidenceDto, NutritionConsultationResponseDto } from '../dto/consultation-response.dto.js';
 import { ConsultationIntentRouter } from './consultation-intent.router.js';
 import { FoodEntityResolver } from './food-entity-resolver.js';
+import { FoodEvaluationConsultationService } from './food-evaluation-consultation.service.js';
 import type { NutritionConsultationLane } from '../types/consultation-route.type.js';
 import type { MealContextAvailability } from '../types/meal-context-availability.type.js';
 
@@ -19,6 +20,7 @@ export class NutritionConsultationService {
     private readonly laboratoryResultsService: LaboratoryResultsService,
     private readonly consultationRouter: ConsultationIntentRouter = new ConsultationIntentRouter(),
     private readonly foodEntityResolver: FoodEntityResolver,
+    private readonly foodEvaluationConsultationService?: FoodEvaluationConsultationService,
   ) {}
 
   async consult(userId: string, question: string, requestedDate?: string): Promise<NutritionConsultationResponseDto> {
@@ -34,12 +36,15 @@ export class NutritionConsultationService {
       ? this.recommendationService.recommendHistorical(userId, [summary])
       : this.recommendationService.recommendDaily(userId, summary);
     const laboratoryResults = await this.laboratoryResultsService.findMany(userId, {});
-    const intent = this.classifyIntent(question);
+    const intent = this.classifyIntent(question, route.lane);
     const laboratoryEvidence = this.mapLaboratoryEvidence(laboratoryResults, summary);
     const mealContext = this.resolveMealContext(route.lane, summary.mealCount);
     const foodResolution = route.lane === 'food'
       ? await this.foodEntityResolver.resolve(userId, question)
       : undefined;
+    const foodEvaluation = foodResolution == null || this.foodEvaluationConsultationService == null
+      ? undefined
+      : await this.foodEvaluationConsultationService.evaluate(userId, foodResolution);
 
     return {
       apiVersion: 'v1',
@@ -49,7 +54,8 @@ export class NutritionConsultationService {
       intent,
       mealContext,
       ...(foodResolution == null ? {} : { foodResolution }),
-      answer: this.buildAnswer(intent, summary, resolution, mealContext, foodResolution),
+      ...(foodEvaluation == null ? {} : { foodEvaluation }),
+      answer: this.buildAnswer(intent, summary, resolution, mealContext, foodResolution, foodEvaluation),
       recommendations: historicalReplay
         ? RecommendationResponseMapper.toHistoricalResponse(userId, date, date, resolution)
         : RecommendationResponseMapper.toDailyResponse(userId, date, resolution),
@@ -71,8 +77,9 @@ export class NutritionConsultationService {
     return mealCount > 0 ? 'available' : 'unavailable';
   }
 
-  private classifyIntent(question: string): string {
+  private classifyIntent(question: string, lane?: NutritionConsultationLane): string {
     const normalized = question.trim().toLowerCase();
+    if (lane === 'recommendation' && !/(why|recommend|explain)/.test(normalized)) return 'recommendation';
     if (/(lab|laboratory|egfr|result|test)/.test(normalized)) return 'laboratory-evidence';
     if (/(why|recommend|explain)/.test(normalized)) return 'recommendation-explanation';
     if (/(avoid|shouldn't|should not)/.test(normalized)) return 'avoidance-guidance';
@@ -87,6 +94,7 @@ export class NutritionConsultationService {
     resolution: RecommendationResolution,
     mealContext: MealContextAvailability,
     foodResolution?: Awaited<ReturnType<FoodEntityResolver['resolve']>>,
+    foodEvaluation?: Awaited<ReturnType<FoodEvaluationConsultationService['evaluate']>>,
   ): string {
     const selected = resolution.selected;
     const policyContext = this.policyContext(summary);
@@ -107,6 +115,16 @@ export class NutritionConsultationService {
     }
     if (foodResolution?.status === 'not-found') {
       return 'I could not find a confident match in the food catalog. Try a more specific food name or spelling.';
+    }
+    if (foodResolution?.status === 'resolved' && foodResolution.candidates[0]?.kind === 'approved-recipe') {
+      return `I found the approved recipe ${foodResolution.candidates[0].displayName}. Recipe component evaluation is not available yet, so I have not inferred a compatibility result for the recipe.`;
+    }
+    if (foodEvaluation != null) {
+      const foodName = foodEvaluation.displayName;
+      if (foodEvaluation.evaluation.evaluationStatus === 'insufficient-evidence') {
+        return `I found ${foodName} using the ${foodEvaluation.serving.name} serving, but there is not enough applicable nutrient evidence to produce a compatibility score for this portion.`;
+      }
+      return `I evaluated ${foodName} using ${foodEvaluation.serving.name} (${foodEvaluation.serving.grams} g). Its compatibility score is ${foodEvaluation.evaluation.score}/100. The detailed compatibility reasons, contributions, evidence coverage, and any deferrals are included below.`;
     }
     if (mealContext === 'unavailable') return 'You have not logged a meal today yet. Once you do, I can compare it with your active goals and explain the guidance.';
     if (mealContext === 'notRequired') return 'Your active nutrition guidance and recorded evidence are available. Meal logs are only needed when you want daily progress or meal-specific feedback.';

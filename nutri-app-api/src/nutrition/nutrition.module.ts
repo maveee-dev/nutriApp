@@ -46,6 +46,7 @@ import { AiNutritionConsultationService } from './consultation/services/ai-nutri
 import { AiNutritionConsultationProviderAdapter } from './consultation/services/ai-nutrition-consultation-provider.adapter.js';
 import { ConsultationIntentRouter } from './consultation/services/consultation-intent.router.js';
 import { FoodEntityResolver } from './consultation/services/food-entity-resolver.js';
+import { FoodEvaluationConsultationService } from './consultation/services/food-evaluation-consultation.service.js';
 import { NUTRITION_CONSULTATION_AI_PROVIDER } from './consultation/types/nutrition-consultation-ai.tokens.js';
 import { AiModule } from '../ai/ai.module.js';
 import { MealPlanningController } from './planning/controllers/meal-planning.controller.js';
@@ -111,6 +112,7 @@ import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-h
     AiNutritionConsultationProviderAdapter,
     ConsultationIntentRouter,
     FoodEntityResolver,
+    FoodEvaluationConsultationService,
     {
       provide: NUTRITION_CONSULTATION_AI_PROVIDER,
       useExisting: AiNutritionConsultationProviderAdapter,

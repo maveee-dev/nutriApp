@@ -28,22 +28,25 @@ export class AiNutritionConsultationService {
       return this.withDeterministicRouteResponse(deterministicResponse, route.lane);
     }
 
-    // Food evaluation is intentionally deferred to the next phase. Do not
-    // ask Gemini to interpret an ambiguous or unresolved entity.
-    if (route.lane === 'food' && deterministicResponse.foodResolution?.status !== 'resolved') {
+    // Food questions may use Gemini only after deterministic entity resolution
+    // and food evaluation succeeded. Ambiguous, unresolved, and recipe-only
+    // matches remain fully deterministic.
+    if (route.lane === 'food' && (
+      deterministicResponse.foodResolution?.status !== 'resolved'
+      || deterministicResponse.foodEvaluation == null
+    )) {
       return deterministicResponse;
     }
 
     try {
       const explanation = await this.provider.explain({ deterministicResponse, conversation });
-      if (explanation == null || !this.isSafeExplanation(explanation.answer)) return deterministicResponse;
+      if (explanation == null || explanation.refused || !this.isSafeExplanation(explanation.answer)) return deterministicResponse;
       return {
         ...deterministicResponse,
-        ...(explanation.refused ? { answer: explanation.answer } : {}),
         assistantMode: 'ai-assisted',
-        answer: explanation.answer,
         aiAssisted: true,
         aiProvider: explanation.providerId,
+        aiExplanation: explanation.answer,
       };
     } catch (error) {
       this.logger.warn(`Consultation AI provider failed; using deterministic response. ${error instanceof Error ? error.message : String(error)}`);

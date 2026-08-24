@@ -43,6 +43,22 @@ describe('AiNutritionConsultationProviderAdapter', () => {
         source: 'manual-entry',
         usedByPolicies: [],
       }],
+      foodEvaluation: {
+        foodId: 'food-egg',
+        displayName: 'Egg',
+        variantLabel: 'Large',
+        serving: { id: 'serving-egg', name: '1 large egg', grams: '50', quantity: '1' },
+        evaluation: {
+          score: 96,
+          evaluationStatus: 'evaluated' as const,
+          coverage: 100,
+          reasons: [{ code: 'sodium-within-limit', direction: 'positive' as const, nutrient: 'sodium', measuredValue: '62', targetValue: '2300', explanation: 'Sodium is within the active limit.' }],
+          contributions: [{ nutrient: 'protein', unit: 'g', amount: '6', targetValue: '60', currentDailyValue: null, explanation: 'Provides protein.' }],
+          deferredPolicies: [],
+        },
+        targetCalculation: { targets: { sodiumMilligrams: '2300', proteinGrams: '60' }, adjustments: [], deferredPolicies: [], targetProvenance: [] },
+        policySetFingerprint: 'policy-set-1',
+      },
       limitations: ['Educational only.'],
     };
 
@@ -53,7 +69,14 @@ describe('AiNutritionConsultationProviderAdapter', () => {
       userConditions: [],
       labSummary: [expect.objectContaining({ testCode: 'egfr', value: '42' })],
       recommendations: [expect.objectContaining({ title: 'Keep logging' })],
-      foodEvaluation: null,
+      foodEvaluation: expect.objectContaining({
+        displayName: 'Egg',
+        serving: expect.objectContaining({ name: '1 large egg', grams: '50' }),
+        compatibilityScore: 96,
+        reasons: [expect.objectContaining({ direction: 'positive', measuredValue: '62' })],
+        contributions: [expect.objectContaining({ nutrient: 'protein', unit: 'g', amount: '6' })],
+      }),
+      consultationType: 'recommendation-explanation',
     }));
   });
 });

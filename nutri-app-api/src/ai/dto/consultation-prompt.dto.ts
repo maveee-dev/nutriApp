@@ -13,21 +13,70 @@ export interface ConsultationPromptLaboratoryEvidence {
 }
 
 export interface ConsultationPromptFoodEvaluation {
+  readonly foodId: string;
   readonly displayName: string;
+  readonly variantLabel: string | null;
+  readonly serving: {
+    readonly name: string;
+    readonly grams: string;
+    readonly quantity: string;
+  };
   readonly evaluationStatus: string;
   readonly compatibilityScore: number | null;
   readonly coverage: number | null;
   readonly reasons: readonly {
     readonly nutrient?: string;
     readonly direction?: string;
+    readonly measuredValue?: string;
+    readonly targetValue?: string | null;
     readonly explanation: string;
   }[];
   readonly contributions: readonly {
     readonly nutrient: string;
     readonly amount: string;
     readonly unit?: string;
-    readonly targetPercentage?: number | null;
+    readonly targetValue?: string | null;
+    readonly currentDailyValue?: string | null;
+    readonly explanation: string;
   }[];
+  readonly targets: NutritionTargets;
+  readonly deferredPolicies: readonly {
+    readonly policyId: string;
+    readonly reason: string;
+    readonly explanation: string;
+  }[];
+  readonly targetProvenance: readonly ConsultationPromptTargetProvenance[];
+  readonly policySetFingerprint: string | null;
+}
+
+export interface ConsultationPromptTargetProvenance {
+  readonly target: string;
+  readonly policyId: string;
+  readonly source: string;
+  readonly sourceUrl?: string;
+  readonly sourceVersion?: string;
+  readonly version: string;
+  readonly explanation: string;
+  readonly applicability?: {
+    readonly context: string;
+    readonly conditionCode: string;
+    readonly dialysisStatus: string | null;
+    readonly laboratory?: {
+      readonly testCode: string;
+      readonly value: string;
+      readonly unit: string;
+      readonly collectedAt: string;
+    };
+  };
+  readonly evidence?: {
+    readonly evidenceId?: string;
+    readonly evidenceVersion?: number;
+    readonly approvalSource: string;
+    readonly sourceReference: string | null;
+    readonly effectiveAt?: string;
+    readonly approvedAt: string;
+    readonly expiresAt: string | null;
+  };
 }
 
 export interface ConsultationPromptDailySummary {
@@ -50,6 +99,10 @@ export interface ConsultationPromptDailySummary {
     readonly coveragePercentage: number | null;
   }[];
   readonly replayLimitations: readonly string[];
+  readonly targetProvenance?: readonly ConsultationPromptTargetProvenance[];
+  readonly snapshotIds?: readonly string[];
+  readonly evaluatorVersions?: readonly string[];
+  readonly policySetFingerprints?: readonly string[];
 }
 
 export interface ConsultationPromptRecommendation {
@@ -70,6 +123,8 @@ export interface ConsultationPromptRecommendation {
 
 /** Structured, allowlisted data supplied to an AI provider. */
 export interface ConsultationPrompt {
+  /** Consultation lane/intent used to tailor explanation style only. */
+  readonly consultationType?: string;
   readonly userConditions: readonly string[];
   readonly labSummary: readonly ConsultationPromptLaboratoryEvidence[];
   readonly foodEvaluation: ConsultationPromptFoodEvaluation | null;
@@ -78,3 +133,4 @@ export interface ConsultationPrompt {
   readonly userQuestion: string;
   readonly conversation: readonly ConsultationPromptConversationTurn[];
 }
+import type { NutritionTargets } from '../../nutrition/analysis/types/nutrition-targets.type.js';
