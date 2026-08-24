@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useRegisterMutation } from '../hooks/useAuthMutations';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -145,6 +146,14 @@ export const RegisterPage: React.FC = () => {
             >
               Create Account
             </Button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }} />
+              <span>or</span>
+              <span style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }} />
+            </div>
+
+            <GoogleSignInButton />
           </form>
         </Card>
 

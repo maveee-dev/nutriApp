@@ -1,13 +1,23 @@
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { ApiResponse, ErrorResponse } from './types';
+import type { LoginResponse } from '@/features/auth/types/auth.types';
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const refreshClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+let refreshPromise: Promise<LoginResponse | null> | null = null;
 
 // Request Interceptor: Attach JWT Token
 apiClient.interceptors.request.use(
@@ -37,13 +47,22 @@ apiClient.interceptors.response.use(
 
     return response.data;
   },
-  (error: AxiosError<ErrorResponse>) => {
+  async (error: AxiosError<ErrorResponse>) => {
     if (error.response) {
       const { status, data, config } = error.response;
 
-      // Only force logout on 401 for authenticated session requests (not login/register attempts)
-      const isAuthEndpoint = config?.url?.includes('/auth/login') || config?.url?.includes('/auth/register');
-      if (status === 401 && !isAuthEndpoint) {
+      const requestConfig = config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+      const isAuthEndpoint = isAuthenticationEndpoint(config?.url);
+
+      if (status === 401 && requestConfig && !requestConfig._retry && !isAuthEndpoint) {
+        const refreshed = await awaitRefreshToken();
+
+        if (refreshed) {
+          requestConfig._retry = true;
+          requestConfig.headers.set('Authorization', `Bearer ${refreshed.accessToken}`);
+          return apiClient(requestConfig);
+        }
+
         useAuthStore.getState().logout();
       }
 
@@ -84,3 +103,53 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+function isAuthenticationEndpoint(url?: string): boolean {
+  if (!url) return false;
+
+  // Login, registration, verification, password recovery, refresh, logout,
+  // and OAuth endpoints must surface their own authentication errors. The
+  // authenticated /auth/me endpoint is deliberately refreshable.
+  const nonRefreshableEndpoints = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/verify-email',
+    '/auth/resend-verification',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+    '/auth/refresh',
+    '/auth/logout',
+    '/auth/google',
+  ];
+
+  return nonRefreshableEndpoints.some((endpoint) => url.includes(endpoint));
+}
+
+function unwrap<T>(response: AxiosResponse<ApiResponse<T> | T>): T {
+  const payload = response.data;
+  if (payload && typeof payload === 'object' && 'success' in payload && payload.success === true && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
+function awaitRefreshToken(): Promise<LoginResponse | null> {
+  if (refreshPromise == null) {
+    refreshPromise = refreshClient
+      .post<ApiResponse<LoginResponse>>('/auth/refresh')
+      .then((response) => {
+        const data = unwrap(response);
+        useAuthStore.getState().setAuth(data.accessToken, data.user);
+        return data;
+      })
+      .catch(() => {
+        useAuthStore.getState().logout();
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}

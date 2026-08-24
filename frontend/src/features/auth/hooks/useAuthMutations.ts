@@ -43,13 +43,13 @@ export const useRegisterMutation = () => {
 
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       showToast({
         type: 'success',
         title: 'Account created!',
-        message: 'Your account is ready. Please sign in to continue.',
+        message: 'Check your email for the verification code.',
       });
-      navigate('/login?next=/onboarding');
+      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
     },
     onError: (error: Error) => {
       showToast({
@@ -59,4 +59,18 @@ export const useRegisterMutation = () => {
       });
     },
   });
+};
+
+export const useLogout = () => {
+  const clearAuth = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
+
+  return async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      clearAuth();
+      navigate('/login', { replace: true });
+    }
+  };
 };

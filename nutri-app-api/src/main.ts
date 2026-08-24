@@ -6,6 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptors.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import cookie from '@fastify/cookie';
 import 'dotenv/config';
 
 async function bootstrap() {
@@ -24,6 +25,7 @@ async function bootstrap() {
   });
 
   const fastify = app.getHttpAdapter().getInstance();
+  await fastify.register(cookie);
   const requestCounts = new Map<string, { count: number; resetAt: number }>();
   const rateLimitMax = configService.get<number>('rateLimitMax') ?? 120;
   const rateLimitWindowMs = configService.get<number>('rateLimitWindowMs') ?? 60_000;

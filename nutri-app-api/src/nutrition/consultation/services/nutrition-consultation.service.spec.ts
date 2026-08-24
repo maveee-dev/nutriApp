@@ -1,7 +1,9 @@
 import { jest } from '@jest/globals';
 import { NutritionConsultationService } from './nutrition-consultation.service.js';
+import { FoodEntityResolver } from './food-entity-resolver.js';
 
 describe('NutritionConsultationService', () => {
+  const foodEntityResolver = { resolve: jest.fn() } as unknown as FoodEntityResolver;
   const summary = {
     date: '2026-08-19',
     mealCount: 1,
@@ -27,11 +29,14 @@ describe('NutritionConsultationService', () => {
       { getDailySummary: jest.fn().mockResolvedValue(summary) } as never,
       { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
       { findMany: jest.fn().mockResolvedValue([{ id: 'lab-1', testCode: 'egfr', value: '42', unit: 'mL/min/1.73m2', collectedAt: new Date('2026-08-18T00:00:00.000Z') }]) } as never,
+      undefined,
+      foodEntityResolver,
     );
 
     const result = await service.consult('user-1', 'Which of my lab results affected this?', '2026-08-19');
 
     expect(result.assistantMode).toBe('deterministic-evidence');
+    expect(result.mealContext).toBe('notRequired');
     expect(result.intent).toBe('laboratory-evidence');
     expect(result.laboratoryEvidence[0]).toMatchObject({ id: 'lab-1', status: 'current', source: 'manual-entry' });
     expect(result.laboratoryEvidence[0].usedByPolicies[0].policyId).toBe('ckd-non-dialysis-protein-v1');
@@ -43,11 +48,73 @@ describe('NutritionConsultationService', () => {
       { getDailySummary: jest.fn().mockResolvedValue({ ...summary, mealCount: 0 }) } as never,
       { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
       { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      foodEntityResolver,
     );
 
-    const result = await service.consult('user-1', 'What should I eat today?', '2026-08-19');
+    const result = await service.consult('user-1', 'How am I doing today?', '2026-08-19');
     expect(result.answer).toContain('have not logged a meal today');
+    expect(result.mealContext).toBe('unavailable');
     expect(result.laboratoryEvidence).toEqual([]);
+  });
+
+  it.each([
+    'Why is sodium important?',
+    'Can I eat bananas?',
+    'Which lab result affected my guidance?',
+    'What should I eat today?',
+  ])('does not require meal context for %s', async (question) => {
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue({ ...summary, mealCount: 0 }) } as never,
+      { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      foodEntityResolver,
+    );
+
+    const result = await service.consult('user-1', question, '2026-08-19');
+
+    expect(result.mealContext).toBe('notRequired');
+    expect(result.answer).not.toContain('have not logged a meal today');
+  });
+
+  it('marks daily progress context available when meals exist', async () => {
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue(summary) } as never,
+      { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      foodEntityResolver,
+    );
+
+    const result = await service.consult('user-1', 'How am I doing today?', '2026-08-19');
+
+    expect(result.mealContext).toBe('available');
+  });
+
+  it('exposes deterministic food ambiguity without inventing an evaluation', async () => {
+    const resolver = {
+      resolve: jest.fn().mockResolvedValue({
+        status: 'ambiguous',
+        query: 'Can I eat egg?',
+        candidates: [
+          { kind: 'food', foodId: 'egg-1', displayName: 'Egg', variantLabel: null, matchType: 'display-exact', confidence: 'high' },
+          { kind: 'food', foodId: 'egg-2', displayName: 'Egg', variantLabel: 'Duck', matchType: 'display-exact', confidence: 'high' },
+        ],
+      }),
+    };
+    const service = new NutritionConsultationService(
+      { getDailySummary: jest.fn().mockResolvedValue(summary) } as never,
+      { recommendDaily: jest.fn().mockReturnValue({ selected: [], suppressed: [] }) } as never,
+      { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      resolver as never,
+    );
+
+    const result = await service.consult('user-1', 'Can I eat egg?', '2026-08-19');
+
+    expect(result.foodResolution?.status).toBe('ambiguous');
+    expect(result.answer).toContain('several possible foods');
   });
 
   it('uses historical replay projections for a past consultation date when available', async () => {
@@ -58,6 +125,8 @@ describe('NutritionConsultationService', () => {
       historical as never,
       recommendationService as never,
       { findMany: jest.fn().mockResolvedValue([]) } as never,
+      undefined,
+      foodEntityResolver,
     );
 
     const result = await service.consult('user-1', 'Why is this recommended?', '2026-08-19');

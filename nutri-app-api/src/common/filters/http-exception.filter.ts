@@ -6,6 +6,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
   NotFoundException,
   UnauthorizedException 
 } from "@nestjs/common";
@@ -18,6 +19,8 @@ import { DomainValidationError } from "../errors/domain-validation.error.js";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     if (exception instanceof DomainValidationError) {
       exception = new BadRequestException(exception.message);
@@ -38,6 +41,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
     exception instanceof HttpException
       ? exception.getStatus()
       : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    if (!(exception instanceof HttpException)) {
+      const exceptionRecord = exception as { code?: unknown; meta?: unknown; clientVersion?: unknown };
+      const diagnostic = exceptionRecord.code == null
+        ? ''
+        : `\ncode=${String(exceptionRecord.code)} meta=${JSON.stringify(exceptionRecord.meta ?? null)} clientVersion=${String(exceptionRecord.clientVersion ?? '')}`;
+      const detail = exception instanceof Error
+        ? `${exception.name}: ${exception.message}${diagnostic}\n${exception.stack ?? ''}`
+        : `${String(exception)}${diagnostic}`;
+      this.logger.error(`Unhandled request exception for ${request.method} ${request.url}\n${detail}`);
+    }
 
     let message: string | string[];
 

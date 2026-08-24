@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useLoginMutation } from '../hooks/useAuthMutations';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -130,6 +131,18 @@ export const LoginPage: React.FC = () => {
             >
               Sign In
             </Button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <span style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }} />
+              <span>or</span>
+              <span style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }} />
+            </div>
+
+            <GoogleSignInButton />
+
+            <Link to={`/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ''}`} style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.875rem', textAlign: 'center' }}>
+              Forgot password?
+            </Link>
           </form>
         </Card>
 

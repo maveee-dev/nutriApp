@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { AiNutritionConsultationService } from './ai-nutrition-consultation.service.js';
+import { ConsultationIntentRouter } from './consultation-intent.router.js';
 
 const deterministic = {
   apiVersion: 'v1',
@@ -7,6 +8,7 @@ const deterministic = {
   question: 'What should I improve?',
   date: '2026-08-19',
   intent: 'daily-improvement',
+  mealContext: 'available' as const,
   answer: 'Keep going.',
   recommendations: { apiVersion: 'v1', scope: 'daily', contextId: 'context-1', asOf: '2026-08-19T23:59:59.999Z', recommendations: [], suppressed: [] },
   laboratoryEvidence: [],
@@ -49,5 +51,56 @@ describe('AiNutritionConsultationService', () => {
     const service = new AiNutritionConsultationService({ consult: jest.fn().mockResolvedValue(deterministic) } as never, provider);
 
     await expect(service.consult('user-1', 'What should I improve?')).resolves.toBe(deterministic);
+  });
+
+  it.each([
+    ['Who created you?', 'Maverich Co.'],
+    ['Calculate my protein total.', 'can\'t calculate or estimate'],
+    ['Can you help me with programming?', 'nutrition assistant'],
+  ])('does not invoke AI for deterministic %s routing', async (question, expectedText) => {
+    const provider = { explain: jest.fn() };
+    const service = new AiNutritionConsultationService(
+      { consult: jest.fn().mockResolvedValue(deterministic) } as never,
+      provider,
+      new ConsultationIntentRouter(),
+    );
+
+    const result = await service.consult('user-1', question);
+
+    expect(provider.explain).not.toHaveBeenCalled();
+    expect(result.assistantMode).toBe('deterministic-evidence');
+    expect(result.aiAssisted).toBe(false);
+    expect(result.answer).toContain(expectedText);
+  });
+
+  it('continues to invoke the provider for an allowed conversational lane', async () => {
+    const provider = { explain: jest.fn().mockResolvedValue({ answer: 'A clear explanation.', providerId: 'test-provider-v1' }) };
+    const service = new AiNutritionConsultationService(
+      { consult: jest.fn().mockResolvedValue(deterministic) } as never,
+      provider,
+      new ConsultationIntentRouter(),
+    );
+
+    await service.consult('user-1', 'Why is sodium important?');
+
+    expect(provider.explain).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['ambiguous', 'not-found'] as const)('does not invoke AI for %s food resolution', async (status) => {
+    const provider = { explain: jest.fn() };
+    const deterministicResponse = {
+      ...deterministic,
+      foodResolution: { status, query: 'Can I eat egg?', candidates: [] },
+    };
+    const service = new AiNutritionConsultationService(
+      { consult: jest.fn().mockResolvedValue(deterministicResponse) } as never,
+      provider,
+      new ConsultationIntentRouter(),
+    );
+
+    const result = await service.consult('user-1', 'Can I eat egg?');
+
+    expect(result).toBe(deterministicResponse);
+    expect(provider.explain).not.toHaveBeenCalled();
   });
 });

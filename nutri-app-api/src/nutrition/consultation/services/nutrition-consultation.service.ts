@@ -6,6 +6,10 @@ import { RecommendationService } from '../../recommendations/recommendation.serv
 import { RecommendationResolution } from '../../recommendations/types/recommendation-resolver.type.js';
 import { DailyNutritionSummarySource } from '../../analysis/types/daily-nutrition-summary.source.js';
 import { ConsultationLaboratoryEvidenceDto, NutritionConsultationResponseDto } from '../dto/consultation-response.dto.js';
+import { ConsultationIntentRouter } from './consultation-intent.router.js';
+import { FoodEntityResolver } from './food-entity-resolver.js';
+import type { NutritionConsultationLane } from '../types/consultation-route.type.js';
+import type { MealContextAvailability } from '../types/meal-context-availability.type.js';
 
 @Injectable()
 export class NutritionConsultationService {
@@ -13,9 +17,12 @@ export class NutritionConsultationService {
     private readonly analysisService: NutritionAnalysisService,
     private readonly recommendationService: RecommendationService,
     private readonly laboratoryResultsService: LaboratoryResultsService,
+    private readonly consultationRouter: ConsultationIntentRouter = new ConsultationIntentRouter(),
+    private readonly foodEntityResolver: FoodEntityResolver,
   ) {}
 
   async consult(userId: string, question: string, requestedDate?: string): Promise<NutritionConsultationResponseDto> {
+    const route = this.consultationRouter.route(question);
     const date = requestedDate ?? new Date().toISOString().slice(0, 10);
     const historicalReplay = date < new Date().toISOString().slice(0, 10)
       && typeof this.analysisService.getHistoricalSummary === 'function';
@@ -29,6 +36,10 @@ export class NutritionConsultationService {
     const laboratoryResults = await this.laboratoryResultsService.findMany(userId, {});
     const intent = this.classifyIntent(question);
     const laboratoryEvidence = this.mapLaboratoryEvidence(laboratoryResults, summary);
+    const mealContext = this.resolveMealContext(route.lane, summary.mealCount);
+    const foodResolution = route.lane === 'food'
+      ? await this.foodEntityResolver.resolve(userId, question)
+      : undefined;
 
     return {
       apiVersion: 'v1',
@@ -36,7 +47,9 @@ export class NutritionConsultationService {
       question,
       date,
       intent,
-      answer: this.buildAnswer(intent, summary, resolution),
+      mealContext,
+      ...(foodResolution == null ? {} : { foodResolution }),
+      answer: this.buildAnswer(intent, summary, resolution, mealContext, foodResolution),
       recommendations: historicalReplay
         ? RecommendationResponseMapper.toHistoricalResponse(userId, date, date, resolution)
         : RecommendationResponseMapper.toDailyResponse(userId, date, resolution),
@@ -44,9 +57,18 @@ export class NutritionConsultationService {
       limitations: [
         'This guidance explains approved nutrition policies and recorded evidence; it does not diagnose, prescribe, or replace professional medical advice.',
         ...(summary.deferredPolicies.length > 0 ? ['Some guidance is deferred because required evidence is missing, stale, or outside the approved policy scope.'] : []),
+        ...(mealContext === 'unavailable' ? ['Meal-specific guidance is unavailable because no meal is logged for this date.'] : []),
         ...(resolution.evaluation?.replayLimitations.length ? ['Some historical evaluation details could not be replayed because the required stored evaluation context was incomplete or incompatible.'] : []),
       ],
     };
+  }
+
+  private resolveMealContext(
+    lane: NutritionConsultationLane,
+    mealCount: number,
+  ): MealContextAvailability {
+    if (lane !== 'meal-progress') return 'notRequired';
+    return mealCount > 0 ? 'available' : 'unavailable';
   }
 
   private classifyIntent(question: string): string {
@@ -59,7 +81,13 @@ export class NutritionConsultationService {
     return 'daily-guidance';
   }
 
-  private buildAnswer(intent: string, summary: DailyNutritionSummarySource, resolution: RecommendationResolution): string {
+  private buildAnswer(
+    intent: string,
+    summary: DailyNutritionSummarySource,
+    resolution: RecommendationResolution,
+    mealContext: MealContextAvailability,
+    foodResolution?: Awaited<ReturnType<FoodEntityResolver['resolve']>>,
+  ): string {
     const selected = resolution.selected;
     const policyContext = this.policyContext(summary);
     if (resolution.evaluation?.replayLimitations.length && selected.length === 0) {
@@ -74,7 +102,14 @@ export class NutritionConsultationService {
       const contextExplanation = policyContext.length === 0 ? '' : ` This guidance uses your active ${policyContext.join(' and ')} nutrition policies.`;
       return `${lead}${contextExplanation} ${selected.slice(0, 2).map((item) => item.message).join(' ')}`;
     }
-    if (summary.mealCount === 0) return 'You have not logged a meal today yet. Once you do, I can compare it with your active goals and explain the guidance.';
+    if (foodResolution?.status === 'ambiguous') {
+      return 'I found several possible foods. Please choose the food you mean so NutriApp can continue with the correct evidence.';
+    }
+    if (foodResolution?.status === 'not-found') {
+      return 'I could not find a confident match in the food catalog. Try a more specific food name or spelling.';
+    }
+    if (mealContext === 'unavailable') return 'You have not logged a meal today yet. Once you do, I can compare it with your active goals and explain the guidance.';
+    if (mealContext === 'notRequired') return 'Your active nutrition guidance and recorded evidence are available. Meal logs are only needed when you want daily progress or meal-specific feedback.';
     return 'You are on a steady path today. Keep logging meals and I can help you choose the next small improvement from your active goals.';
   }
 

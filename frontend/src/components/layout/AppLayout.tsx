@@ -1,18 +1,12 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { DesktopSidebar } from './DesktopSidebar';
 import { MobileBottomNav } from './MobileBottomNav';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useLogout } from '@/features/auth/hooks/useAuthMutations';
 import { LogOut, Sparkles } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
-  const logout = useAuthStore((state) => state.logout);
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = useLogout();
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
@@ -59,7 +53,7 @@ export const AppLayout: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             title="Sign Out"
             style={{
               background: 'transparent',

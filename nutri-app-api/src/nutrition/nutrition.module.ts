@@ -43,8 +43,11 @@ import { FoodRecognitionService } from './food-recognition/services/food-recogni
 import { NoopFoodRecognitionProvider } from './food-recognition/services/noop-food-recognition.provider.js';
 import { FOOD_RECOGNITION_PROVIDER } from './food-recognition/types/food-recognition.tokens.js';
 import { AiNutritionConsultationService } from './consultation/services/ai-nutrition-consultation.service.js';
-import { NoopNutritionConsultationAiProvider } from './consultation/services/noop-nutrition-consultation-ai.provider.js';
+import { AiNutritionConsultationProviderAdapter } from './consultation/services/ai-nutrition-consultation-provider.adapter.js';
+import { ConsultationIntentRouter } from './consultation/services/consultation-intent.router.js';
+import { FoodEntityResolver } from './consultation/services/food-entity-resolver.js';
 import { NUTRITION_CONSULTATION_AI_PROVIDER } from './consultation/types/nutrition-consultation-ai.tokens.js';
+import { AiModule } from '../ai/ai.module.js';
 import { MealPlanningController } from './planning/controllers/meal-planning.controller.js';
 import { MealPlanningService } from './planning/services/meal-planning.service.js';
 import { ShadowMealPlanningService } from './planning/shadow/services/shadow-meal-planning.service.js';
@@ -55,7 +58,7 @@ import { ShadowClinicalFixtureValidationService } from './planning/shadow/valida
 import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-historical-replay.service.js';
 
 @Module({
-  imports: [FoodsModule, RecipesModule, MealTemplatesModule, NutrientsModule, CategoriesModule, ServingsModule, ProfilesModule, ConditionsModule, LaboratoryModule, DialysisModule],
+  imports: [FoodsModule, RecipesModule, MealTemplatesModule, NutrientsModule, CategoriesModule, ServingsModule, ProfilesModule, ConditionsModule, LaboratoryModule, DialysisModule, AiModule],
   controllers: [NutritionAnalysisController, FoodEvaluationController, RecommendationsController, NutritionConsultationController, FoodRecognitionController, MealPlanningController, RecipesController, MealTemplatesController],
   providers: [
     NutritionAnalysisRepository,
@@ -105,10 +108,12 @@ import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-h
     NoopFoodRecognitionProvider,
     { provide: FOOD_RECOGNITION_PROVIDER, useExisting: NoopFoodRecognitionProvider },
     AiNutritionConsultationService,
-    NoopNutritionConsultationAiProvider,
+    AiNutritionConsultationProviderAdapter,
+    ConsultationIntentRouter,
+    FoodEntityResolver,
     {
       provide: NUTRITION_CONSULTATION_AI_PROVIDER,
-      useExisting: NoopNutritionConsultationAiProvider,
+      useExisting: AiNutritionConsultationProviderAdapter,
     },
   ],
   exports: [FoodEvaluationService, RecommendationService],

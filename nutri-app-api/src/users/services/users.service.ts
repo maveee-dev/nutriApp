@@ -4,6 +4,7 @@ import { createPaginationMeta } from '../../common/utils/pagination.util.js';
 import { UsersRepository } from '../repositories/users.repository.js';
 import { UserAuthSource } from '../sources/user-auth.source.js';
 import { UserSource } from '../sources/user.source.js';
+import { UserVerificationSource } from '../sources/user-verification.source.js';
 import { FindUsersOptions } from '../types/find-users.option.js';
 import { FindUsersInput } from '../types/find-users.input.js';
 
@@ -17,6 +18,10 @@ export class UsersService {
 
   findByEmailWithPassword(email: string): Promise<UserAuthSource | null> {
     return this.usersRepository.findByEmailWithPassword(email);
+  }
+
+  findByEmailWithVerification(email: string): Promise<UserVerificationSource | null> {
+    return this.usersRepository.findByEmailWithVerification(email);
   }
 
   findById(id: string): Promise<UserSource | null> {
@@ -44,7 +49,11 @@ export class UsersService {
     };
   }
 
-  create(email: string, password: string): Promise<UserSource> {
-    return this.usersRepository.create({ email, password });
+  create(email: string, password: string, emailVerifiedAt: Date | null = null): Promise<UserSource> {
+    return this.usersRepository.create({ email, password, emailVerifiedAt });
+  }
+
+  markEmailVerified(userId: string, emailVerifiedAt = new Date()): Promise<boolean> {
+    return this.usersRepository.markEmailVerified(userId, emailVerifiedAt);
   }
 }

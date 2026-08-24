@@ -1,11 +1,12 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, LogOut, MessageCircle, Camera } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useLogout } from '@/features/auth/hooks/useAuthMutations';
 
 export const DesktopSidebar: React.FC = () => {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const handleLogoutRequest = useLogout();
 
   const navItems = [
     { to: '/', label: 'Today', icon: <Sparkles size={20} /> },
@@ -17,10 +18,7 @@ export const DesktopSidebar: React.FC = () => {
     { to: '/health', label: 'Health Profile', icon: <HeartPulse size={20} /> },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => void handleLogoutRequest();
 
   return (
     <aside

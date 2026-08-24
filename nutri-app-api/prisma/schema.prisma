@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,6 +5,393 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id                                    String                                  @id @default(uuid())
+  email                                 String                                  @unique
+  password                              String
+  createdAt                             DateTime                                @default(now())
+  updatedAt                             DateTime                                @updatedAt
+  diabetesCarbohydrateTarget            DiabetesCarbohydrateTarget?
+  individualizedNutritionTargetEvidence IndividualizedNutritionTargetEvidence[]
+  laboratoryResults                     LaboratoryResult[]
+  mealLogs                              MealLog[]
+  mealTemplates                         MealTemplate[]                          @relation("MealTemplateOwner")
+  approvedMealTemplateVersions          MealTemplateVersion[]                   @relation("MealTemplateVersionApprover")
+  profile                               Profile?
+  recipes                               Recipe[]                                @relation("RecipeOwner")
+  approvedRecipeVersions                RecipeVersion[]                         @relation("RecipeVersionApprover")
+  conditions                            UserCondition[]
+  dialysisStatus                        UserDialysisStatus?
+}
+
+model Profile {
+  id            String         @id @default(uuid())
+  age           Int?
+  heightCm      Float?
+  weightKg      Float?
+  userId        String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sex           Sex?
+  activityLevel ActivityLevel?
+  nutritionGoal NutritionGoal?
+  user          User           @relation(fields: [userId], references: [id])
+}
+
+model DiabetesCarbohydrateTarget {
+  id              String                       @id @default(uuid())
+  userId          String                       @unique
+  targetGrams     Decimal                      @db.Decimal(10, 2)
+  approvalSource  DiabetesTargetApprovalSource
+  sourceReference String?
+  approvedAt      DateTime
+  expiresAt       DateTime?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  user            User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Immutable, approved numeric target evidence. New clinical target values are
+/// represented by a new versioned row; existing rows are never updated.
+model IndividualizedNutritionTargetEvidence {
+  id              String                                @id @default(uuid())
+  userId          String
+  nutrientKey     String
+  kind            NutritionTargetEvidenceKind
+  targetValue     Decimal                               @db.Decimal(12, 4)
+  unit            String
+  approvalSource  NutritionTargetEvidenceApprovalSource
+  sourceReference String?
+  effectiveAt     DateTime
+  approvedAt      DateTime
+  expiresAt       DateTime?
+  version         Int
+  createdAt       DateTime                              @default(now())
+  user            User                                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nutrientKey, version], map: "IndividualizedNutritionTargetEvidence_userId_nutrientKey_versio")
+  @@index([userId, nutrientKey, effectiveAt], map: "IndividualizedNutritionTargetEvidence_userId_nutrientKey_effect")
+  @@index([userId, nutrientKey, expiresAt], map: "IndividualizedNutritionTargetEvidence_userId_nutrientKey_expire")
+}
+
+model Condition {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  users       UserCondition[]
+}
+
+model UserCondition {
+  userId      String
+  conditionId String
+  createdAt   DateTime  @default(now())
+  condition   Condition @relation(fields: [conditionId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@id([userId, conditionId])
+}
+
+model LaboratoryResult {
+  id            String   @id @default(uuid())
+  userId        String
+  testCode      String
+  value         Decimal  @db.Decimal(12, 4)
+  unit          String
+  referenceLow  Decimal? @db.Decimal(12, 4)
+  referenceHigh Decimal? @db.Decimal(12, 4)
+  collectedAt   DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, collectedAt])
+  @@index([userId, testCode, collectedAt])
+}
+
+model UserDialysisStatus {
+  userId      String           @id
+  status      DialysisStatus
+  effectiveAt DateTime?
+  reportedAt  DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  modality    DialysisModality @default(UNKNOWN)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FoodCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  source      String   @default("manual")
+  sourceId    String?
+  foods       Food[]
+
+  @@unique([source, sourceId])
+  @@index([name])
+}
+
+model Food {
+  id                String             @id @default(uuid())
+  name              String
+  description       String?
+  categoryId        String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  source            String             @default("manual")
+  sourceId          String?
+  planningClass     FoodPlanningClass  @default(MEAL_ELIGIBLE)
+  category          FoodCategory       @relation(fields: [categoryId], references: [id])
+  nutrients         FoodNutrient[]
+  presentation      FoodPresentation?
+  mealTemplateSlots MealTemplateSlot[]
+  recipeComponents  RecipeComponent[]
+  servings          Serving[]
+
+  @@unique([source, sourceId])
+  @@index([categoryId])
+  @@index([name])
+}
+
+model Serving {
+  id                String             @id @default(uuid())
+  foodId            String
+  name              String
+  grams             Decimal            @db.Decimal(10, 2)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  mealItems         MealItem[]
+  mealTemplateSlots MealTemplateSlot[]
+  recipeComponents  RecipeComponent[]
+  food              Food               @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, name])
+  @@index([foodId])
+}
+
+model FoodPresentation {
+  id                   String      @id @default(uuid())
+  foodId               String      @unique
+  displayNameOverride  String?
+  variantLabelOverride String?
+  searchPriority       Int         @default(0)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  aliases              FoodAlias[]
+  food                 Food        @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@index([searchPriority])
+}
+
+model FoodAlias {
+  id                 String           @id @default(uuid())
+  foodPresentationId String
+  alias              String
+  normalizedAlias    String
+  priority           Int              @default(0)
+  createdAt          DateTime         @default(now())
+  presentation       FoodPresentation @relation(fields: [foodPresentationId], references: [id], onDelete: Cascade)
+
+  @@unique([foodPresentationId, normalizedAlias])
+  @@index([normalizedAlias])
+}
+
+model Recipe {
+  id         String           @id @default(uuid())
+  ownerId    String?
+  visibility RecipeVisibility @default(PRIVATE)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  owner      User?            @relation("RecipeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  versions   RecipeVersion[]
+
+  @@index([ownerId, visibility])
+}
+
+model RecipeVersion {
+  id               String               @id @default(uuid())
+  recipeId         String
+  version          Int
+  name             String
+  description      String?
+  cuisine          String?
+  mealTypes        MealType[]
+  yieldServings    Decimal              @default(1) @db.Decimal(10, 2)
+  sourceType       RecipeSourceType
+  sourceName       String?
+  sourceUrl        String?
+  sourceReference  String?
+  sourceVersion    String?
+  approvalStatus   RecipeApprovalStatus @default(DRAFT)
+  approvedAt       DateTime?
+  approvedByUserId String?
+  createdAt        DateTime             @default(now())
+  templateSlots    MealTemplateSlot[]
+  components       RecipeComponent[]
+  approvedBy       User?                @relation("RecipeVersionApprover", fields: [approvedByUserId], references: [id])
+  recipe           Recipe               @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, version])
+  @@index([approvalStatus])
+}
+
+model RecipeComponent {
+  id              String              @id @default(uuid())
+  recipeVersionId String
+  foodId          String
+  servingId       String?
+  role            RecipeComponentRole
+  quantity        Decimal             @db.Decimal(12, 4)
+  unit            RecipeQuantityUnit
+  displayOrder    Int
+  notes           String?
+  food            Food                @relation(fields: [foodId], references: [id])
+  recipeVersion   RecipeVersion       @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
+  serving         Serving?            @relation(fields: [servingId], references: [id], onDelete: Restrict)
+
+  @@unique([recipeVersionId, displayOrder])
+  @@index([foodId])
+  @@index([recipeVersionId])
+}
+
+model MealTemplate {
+  id         String                 @id @default(uuid())
+  ownerId    String?
+  visibility MealTemplateVisibility @default(PRIVATE)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  owner      User?                  @relation("MealTemplateOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  versions   MealTemplateVersion[]
+
+  @@index([ownerId, visibility])
+}
+
+model MealTemplateVersion {
+  id               String                     @id @default(uuid())
+  mealTemplateId   String
+  version          Int
+  name             String
+  description      String?
+  cuisine          String?
+  mealTypes        MealType[]                 @default([])
+  sourceType       MealTemplateSourceType
+  sourceName       String?
+  sourceUrl        String?
+  sourceReference  String?
+  sourceVersion    String?
+  approvalStatus   MealTemplateApprovalStatus @default(DRAFT)
+  approvedAt       DateTime?
+  approvedByUserId String?
+  createdAt        DateTime                   @default(now())
+  slots            MealTemplateSlot[]
+  approvedBy       User?                      @relation("MealTemplateVersionApprover", fields: [approvedByUserId], references: [id])
+  mealTemplate     MealTemplate               @relation(fields: [mealTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([mealTemplateId, version])
+  @@index([approvalStatus])
+}
+
+model MealTemplateSlot {
+  id                         String               @id @default(uuid())
+  mealTemplateVersionId      String
+  role                       MealTemplateSlotRole
+  kind                       MealTemplateSlotKind
+  name                       String
+  required                   Boolean              @default(true)
+  allowCanonicalFoodFallback Boolean              @default(false)
+  displayOrder               Int
+  recipeVersionId            String?
+  foodId                     String?
+  servingId                  String?
+  quantity                   Decimal?
+  unit                       RecipeQuantityUnit?
+  notes                      String?
+  food                       Food?                @relation(fields: [foodId], references: [id], onDelete: Restrict)
+  mealTemplateVersion        MealTemplateVersion  @relation(fields: [mealTemplateVersionId], references: [id], onDelete: Cascade)
+  recipeVersion              RecipeVersion?       @relation(fields: [recipeVersionId], references: [id], onDelete: Restrict)
+  serving                    Serving?             @relation(fields: [servingId], references: [id], onDelete: Restrict)
+
+  @@unique([mealTemplateVersionId, displayOrder])
+  @@index([mealTemplateVersionId])
+  @@index([recipeVersionId])
+  @@index([foodId])
+}
+
+model Nutrient {
+  id          String         @id @default(uuid())
+  name        String
+  unit        String
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  source      String         @default("manual")
+  sourceId    String?
+  foods       FoodNutrient[]
+
+  @@unique([source, sourceId])
+  @@index([name])
+}
+
+model FoodNutrient {
+  foodId     String
+  nutrientId String
+  amount     Decimal  @db.Decimal(10, 2)
+  food       Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  nutrient   Nutrient @relation(fields: [nutrientId], references: [id], onDelete: Cascade)
+
+  @@id([foodId, nutrientId])
+  @@index([foodId])
+  @@index([nutrientId])
+}
+
+model MealLog {
+  id         String     @id @default(uuid())
+  userId     String
+  mealType   MealType
+  consumedAt DateTime
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  items      MealItem[]
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt])
+}
+
+model MealItem {
+  id                  String                       @id @default(uuid())
+  mealLogId           String
+  servingId           String
+  quantity            Decimal                      @db.Decimal(10, 2)
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  mealLog             MealLog                      @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  serving             Serving                      @relation(fields: [servingId], references: [id])
+  evaluationSnapshots MealItemEvaluationSnapshot[]
+
+  @@index([mealLogId])
+  @@index([servingId])
+}
+
+model MealItemEvaluationSnapshot {
+  id               String   @id @default(uuid())
+  mealItemId       String
+  score            Int
+  coverage         Float
+  payload          Json
+  evaluatorVersion String
+  policyVersion    String
+  snapshotVersion  String
+  evaluatedAt      DateTime
+  createdAt        DateTime @default(now())
+  mealItem         MealItem @relation(fields: [mealItemId], references: [id], onDelete: Cascade)
+
+  @@index([mealItemId, evaluatedAt])
+  @@index([evaluatorVersion, policyVersion])
 }
 
 enum Sex {
@@ -143,446 +525,4 @@ enum NutritionTargetEvidenceApprovalSource {
 enum NutritionTargetEvidenceKind {
   UPPER_LIMIT
   LOWER_TARGET
-}
-
-model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  password   String
-
-  profile    Profile?
-  conditions UserCondition[]
-  mealLogs   MealLog[]
-  laboratoryResults LaboratoryResult[]
-  dialysisStatus UserDialysisStatus?
-  diabetesCarbohydrateTarget DiabetesCarbohydrateTarget?
-  individualizedNutritionTargetEvidence IndividualizedNutritionTargetEvidence[]
-  recipes Recipe[] @relation("RecipeOwner")
-  approvedRecipeVersions RecipeVersion[] @relation("RecipeVersionApprover")
-  mealTemplates MealTemplate[] @relation("MealTemplateOwner")
-  approvedMealTemplateVersions MealTemplateVersion[] @relation("MealTemplateVersionApprover")
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model Profile {
-  id            String   @id @default(uuid())
-
-  age           Int?
-  sex           Sex?
-  heightCm      Float?
-  weightKg      Float?
-  activityLevel ActivityLevel?
-  nutritionGoal NutritionGoal?
-
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model DiabetesCarbohydrateTarget {
-  id              String                       @id @default(uuid())
-  userId          String                       @unique
-  user            User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetGrams     Decimal                      @db.Decimal(10, 2)
-  approvalSource  DiabetesTargetApprovalSource
-  sourceReference String?
-  approvedAt      DateTime
-  expiresAt       DateTime?
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
-}
-
-/// Immutable, approved numeric target evidence. New clinical target values are
-/// represented by a new versioned row; existing rows are never updated.
-model IndividualizedNutritionTargetEvidence {
-  id              String                               @id @default(uuid())
-  userId          String
-  user            User                                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nutrientKey     String
-  kind            NutritionTargetEvidenceKind
-  targetValue     Decimal                              @db.Decimal(12, 4)
-  unit            String
-  approvalSource  NutritionTargetEvidenceApprovalSource
-  sourceReference String?
-  effectiveAt     DateTime
-  approvedAt      DateTime
-  expiresAt       DateTime?
-  version         Int
-  createdAt       DateTime                             @default(now())
-
-  @@unique([userId, nutrientKey, version])
-  @@index([userId, nutrientKey, effectiveAt])
-  @@index([userId, nutrientKey, expiresAt])
-}
-
-model Condition {
-  id          String   @id @default(uuid())
-
-  name        String   @unique
-  description String?
-
-  users       UserCondition[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-}
-
-model UserCondition {
-  userId      String
-  conditionId String
-
-  user        User      @relation(fields: [userId], references: [id])
-  condition   Condition @relation(fields: [conditionId], references: [id])
-
-  createdAt   DateTime  @default(now())
-
-  @@id([userId, conditionId])
-}
-
-model LaboratoryResult {
-  id            String   @id @default(uuid())
-
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  testCode      String
-  value         Decimal  @db.Decimal(12, 4)
-  unit          String
-  referenceLow  Decimal? @db.Decimal(12, 4)
-  referenceHigh Decimal? @db.Decimal(12, 4)
-  collectedAt   DateTime
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId, collectedAt])
-  @@index([userId, testCode, collectedAt])
-}
-
-model UserDialysisStatus {
-  userId      String         @id
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      DialysisStatus
-  modality    DialysisModality @default(UNKNOWN)
-  effectiveAt DateTime?
-  reportedAt  DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-}
-
-model FoodCategory {
-  id          String   @id @default(uuid())
-
-  source      String   @default("manual")
-  sourceId    String?
-
-  name        String
-  description String?
-
-  foods       Food[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([source, sourceId])
-  @@index([name])
-}
-
-model Food {
-  id          String   @id @default(uuid())
-
-  source      String   @default("manual")
-  sourceId    String?
-
-  name        String
-  description String?
-
-  planningClass FoodPlanningClass @default(MEAL_ELIGIBLE)
-
-  categoryId  String
-  category    FoodCategory @relation(fields: [categoryId], references: [id])
-
-  servings    Serving[]
-  nutrients   FoodNutrient[]
-  presentation FoodPresentation?
-  recipeComponents RecipeComponent[]
-  mealTemplateSlots MealTemplateSlot[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([categoryId])
-  @@index([name])
-  @@unique([source, sourceId])
-}
-
-model Serving {
-  id          String   @id @default(uuid())
-
-  foodId      String
-  food        Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
-
-  name        String
-  grams       Decimal  @db.Decimal(10, 2)
-
-  mealItems   MealItem[]
-  recipeComponents RecipeComponent[]
-  mealTemplateSlots MealTemplateSlot[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([foodId, name])
-  @@index([foodId])
-}
-
-model FoodPresentation {
-  id                    String      @id @default(uuid())
-  foodId                String      @unique
-  food                  Food        @relation(fields: [foodId], references: [id], onDelete: Cascade)
-  displayNameOverride   String?
-  variantLabelOverride  String?
-  searchPriority        Int         @default(0)
-  aliases               FoodAlias[]
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-
-  @@index([searchPriority])
-}
-
-model FoodAlias {
-  id                  String          @id @default(uuid())
-  foodPresentationId  String
-  presentation        FoodPresentation @relation(fields: [foodPresentationId], references: [id], onDelete: Cascade)
-  alias               String
-  normalizedAlias     String
-  priority            Int             @default(0)
-  createdAt           DateTime        @default(now())
-
-  @@unique([foodPresentationId, normalizedAlias])
-  @@index([normalizedAlias])
-}
-
-model Recipe {
-  id         String          @id @default(uuid())
-  ownerId    String?
-  owner      User?           @relation("RecipeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  visibility RecipeVisibility @default(PRIVATE)
-
-  versions RecipeVersion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([ownerId, visibility])
-}
-
-model RecipeVersion {
-  id               String                @id @default(uuid())
-  recipeId         String
-  recipe           Recipe                @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  version          Int
-  name             String
-  description      String?
-  cuisine          String?
-  mealTypes        MealType[]
-  yieldServings    Decimal               @default(1) @db.Decimal(10, 2)
-  sourceType       RecipeSourceType
-  sourceName       String?
-  sourceUrl        String?
-  sourceReference  String?
-  sourceVersion    String?
-  approvalStatus   RecipeApprovalStatus   @default(DRAFT)
-  approvedAt       DateTime?
-  approvedByUserId String?
-  approvedBy       User?                 @relation("RecipeVersionApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-
-  components RecipeComponent[]
-  templateSlots MealTemplateSlot[]
-
-  createdAt DateTime @default(now())
-
-  @@unique([recipeId, version])
-  @@index([approvalStatus])
-}
-
-model RecipeComponent {
-  id              String               @id @default(uuid())
-  recipeVersionId String
-  recipeVersion   RecipeVersion        @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
-  foodId          String
-  food            Food                 @relation(fields: [foodId], references: [id], onDelete: Restrict)
-  servingId       String?
-  serving         Serving?             @relation(fields: [servingId], references: [id], onDelete: Restrict)
-  role            RecipeComponentRole
-  quantity        Decimal              @db.Decimal(12, 4)
-  unit            RecipeQuantityUnit
-  displayOrder    Int
-  notes           String?
-
-  @@unique([recipeVersionId, displayOrder])
-  @@index([foodId])
-  @@index([recipeVersionId])
-}
-
-model MealTemplate {
-  id         String                   @id @default(uuid())
-  ownerId    String?
-  owner      User?                    @relation("MealTemplateOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  visibility MealTemplateVisibility    @default(PRIVATE)
-
-  versions MealTemplateVersion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([ownerId, visibility])
-}
-
-model MealTemplateVersion {
-  id               String                    @id @default(uuid())
-  mealTemplateId   String
-  mealTemplate     MealTemplate              @relation(fields: [mealTemplateId], references: [id], onDelete: Cascade)
-  version          Int
-  name             String
-  description      String?
-  cuisine          String?
-  mealTypes        MealType[]                @default([])
-  sourceType       MealTemplateSourceType
-  sourceName       String?
-  sourceUrl        String?
-  sourceReference  String?
-  sourceVersion    String?
-  approvalStatus   MealTemplateApprovalStatus @default(DRAFT)
-  approvedAt       DateTime?
-  approvedByUserId String?
-  approvedBy       User?                     @relation("MealTemplateVersionApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-
-  slots MealTemplateSlot[]
-
-  createdAt DateTime @default(now())
-
-  @@unique([mealTemplateId, version])
-  @@index([approvalStatus])
-}
-
-model MealTemplateSlot {
-  id                    String                  @id @default(uuid())
-  mealTemplateVersionId String
-  mealTemplateVersion   MealTemplateVersion    @relation(fields: [mealTemplateVersionId], references: [id], onDelete: Cascade)
-  role                  MealTemplateSlotRole
-  kind                  MealTemplateSlotKind
-    name                  String
-    required              Boolean                 @default(true)
-    allowCanonicalFoodFallback Boolean             @default(false)
-    displayOrder          Int
-  recipeVersionId       String?
-  recipeVersion         RecipeVersion?         @relation(fields: [recipeVersionId], references: [id], onDelete: Restrict)
-  foodId                String?
-  food                  Food?                   @relation(fields: [foodId], references: [id], onDelete: Restrict)
-  servingId             String?
-  serving               Serving?               @relation(fields: [servingId], references: [id], onDelete: Restrict)
-  quantity              Decimal?
-  unit                  RecipeQuantityUnit?
-  notes                 String?
-
-  @@unique([mealTemplateVersionId, displayOrder])
-  @@index([mealTemplateVersionId])
-  @@index([recipeVersionId])
-  @@index([foodId])
-}
-
-model Nutrient {
-  id          String   @id @default(uuid())
-
-  source      String   @default("manual")
-  sourceId    String?
-
-  name        String
-  unit        String
-  description String?
-
-  foods       FoodNutrient[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([source, sourceId])
-  @@index([name])
-}
-
-model FoodNutrient {
-  foodId      String
-  nutrientId  String
-
-  // Canonical nutrient amount per 100 grams of the food.
-  // External imports must be normalized to this basis before persistence.
-  amount      Decimal   @db.Decimal(10, 2)
-
-  food         Food      @relation(fields: [foodId], references: [id], onDelete: Cascade)
-  nutrient     Nutrient  @relation(fields: [nutrientId], references: [id], onDelete: Cascade)
-
-  @@id([foodId, nutrientId])
-
-  @@index([foodId])
-  @@index([nutrientId])
-}
-
-model MealLog {
-  id          String    @id @default(uuid())
-
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  mealType    MealType
-
-  consumedAt  DateTime
-
-  items       MealItem[]
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([userId, consumedAt])
-}
-
-model MealItem {
-  id          String    @id @default(uuid())
-
-  mealLogId   String
-  mealLog     MealLog   @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
-
-  servingId   String
-  serving     Serving   @relation(fields: [servingId], references: [id])
-
-  quantity    Decimal   @db.Decimal(10, 2)
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  evaluationSnapshots MealItemEvaluationSnapshot[]
-
-  @@index([mealLogId])
-  @@index([servingId])
-}
-
-model MealItemEvaluationSnapshot {
-  id               String   @id @default(uuid())
-  mealItemId       String
-  mealItem         MealItem @relation(fields: [mealItemId], references: [id], onDelete: Cascade)
-  score            Int
-  coverage         Float
-  payload          Json
-  evaluatorVersion String
-  policyVersion    String
-  snapshotVersion  String
-  evaluatedAt      DateTime
-  createdAt        DateTime @default(now())
-
-  @@index([mealItemId, evaluatedAt])
-  @@index([evaluatorVersion, policyVersion])
 }

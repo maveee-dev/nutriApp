@@ -6,6 +6,7 @@ import { EmailAlreadyExistError } from '../errors/email-already-exist.error.js';
 import { UserRepositoryMapper } from '../mappers/repository/user-repository.mapper.js';
 import { UserAuthSource } from '../sources/user-auth.source.js';
 import { UserSource } from '../sources/user.source.js';
+import { UserVerificationSource } from '../sources/user-verification.source.js';
 import { FindUsersOptions } from '../types/find-users.option.js';
 
 @Injectable()
@@ -22,10 +23,26 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  findByEmailWithVerification(email: string): Promise<UserVerificationSource | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, emailVerifiedAt: true },
+    });
+  }
+
   async findById(id: string): Promise<UserSource | null> {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
     return user ? UserRepositoryMapper.toUserSource(user) : null;
+  }
+
+  async markEmailVerified(userId: string, emailVerifiedAt = new Date()): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, emailVerifiedAt: null },
+      data: { emailVerifiedAt },
+    });
+
+    return result.count === 1;
   }
 
   async findMany(options: FindUsersOptions): Promise<UserSource[]> {
@@ -66,6 +83,7 @@ export class UsersRepository {
       const user = await this.prisma.user.create({
         data: {
           ...data,
+          emailVerifiedAt: data.emailVerifiedAt ?? null,
           profile: { create: {} },
         },
       });

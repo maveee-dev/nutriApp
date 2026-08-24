@@ -10,6 +10,7 @@ import { ConditionsModule } from './conditions/conditions.module.js';
 import appConfig from './common/config/app.config.js';
 import authConfig from './common/config/auth.config.js';
 import databaseConfig from './common/config/database.config.js';
+import aiConfig from './common/config/ai.config.js';
 import { envSchema } from './common/config/env.schema.js';
 import { NutritionModule } from './nutrition/nutrition.module.js';
 import { MealsModule } from './meals/meals.module.js';
@@ -25,6 +26,7 @@ import { DialysisModule } from './dialysis/dialysis.module.js';
         appConfig,
         authConfig,
         databaseConfig,
+        aiConfig,
       ],
       
       validate: (config) => envSchema.parse(config),

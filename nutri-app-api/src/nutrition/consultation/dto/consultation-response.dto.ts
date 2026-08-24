@@ -1,4 +1,6 @@
 import { RecommendationResolutionResponseDto } from '../../recommendations/dto/recommendation-response.dto.js';
+import type { MealContextAvailability } from '../types/meal-context-availability.type.js';
+import type { FoodResolutionDto } from '../types/food-resolution.dto.js';
 
 export class ConsultationLaboratoryEvidenceDto {
   id!: string;
@@ -19,6 +21,8 @@ export class NutritionConsultationResponseDto {
   question!: string;
   date!: string;
   intent!: string;
+  mealContext!: MealContextAvailability;
+  foodResolution?: FoodResolutionDto;
   answer!: string;
   recommendations!: RecommendationResolutionResponseDto;
   laboratoryEvidence!: readonly ConsultationLaboratoryEvidenceDto[];

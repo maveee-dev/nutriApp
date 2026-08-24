@@ -13,6 +13,7 @@ export interface NutritionConsultationAiContext {
 export interface NutritionConsultationAiExplanation {
   readonly answer: string;
   readonly providerId: string;
+  readonly refused?: boolean;
 }
 
 export interface NutritionConsultationAiProvider {

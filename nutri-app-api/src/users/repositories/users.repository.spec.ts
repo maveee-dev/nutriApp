@@ -22,6 +22,7 @@ describe('UsersRepository', () => {
       data: {
         email: 'new@example.com',
         password: 'hashed-password',
+        emailVerifiedAt: null,
         profile: { create: {} },
       },
     });

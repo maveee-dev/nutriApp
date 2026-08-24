@@ -5,6 +5,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
+import { VerifyEmailPage } from '@/features/auth/pages/VerifyEmailPage';
+import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { TodayPage } from '@/features/dashboard/pages/TodayPage';
 import { MealsPage } from '@/features/meals/pages/MealsPage';
 import { FoodsPage } from '@/features/foods/pages/FoodsPage';
@@ -20,6 +23,9 @@ export const AppRoutes: React.FC = () => {
       {/* Public Guest Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
