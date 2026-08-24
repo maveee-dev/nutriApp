@@ -10,9 +10,14 @@ import { DailyNutritionProjectionRegistration } from '../types/daily-nutrition-p
 import { DAILY_NUTRITION_PROJECTION_REGISTRATIONS } from './daily-nutrition-projection.tokens.js';
 import { createDailyNutritionProjectionRegistrations } from './daily-nutrition-projection-registrations.js';
 import { decodeMealEvaluationSnapshot } from '../../../meals/snapshots/meal-evaluation-snapshot.adapter.js';
+import { CanonicalCalculationKernel } from '../../calculation/index.js';
+
+const UNIT_AWARE_REPLAY_SNAPSHOT_VERSION = '2';
 
 @Injectable()
 export class NutritionAnalysisService {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   constructor(
     private readonly repository: NutritionAnalysisRepository,
     private readonly calculator: NutritionCalculator,
@@ -172,15 +177,58 @@ export class NutritionAnalysisService {
       const current = latest.get(snapshot.mealItemId);
       if (current == null || snapshot.evaluatedAt > current.evaluatedAt || (snapshot.evaluatedAt.getTime() === current.evaluatedAt.getTime() && snapshot.id > current.id)) latest.set(snapshot.mealItemId, snapshot);
     }
+    const decoded = [...latest.values()].map((snapshot) => ({ snapshot, payload: decodeMealEvaluationSnapshot(snapshot) }));
+    if (decoded.length > 0 && decoded.every(({ snapshot, payload }) => this.isUnitAwareReplaySnapshot(snapshot, payload))) {
+      return this.replayTotalsWithKernel(decoded);
+    }
+    return this.replayTotalsLegacy(decoded);
+  }
+
+  private replayTotalsWithKernel(
+    snapshots: readonly { readonly snapshot: Awaited<ReturnType<MealEvaluationSnapshotRepository['findForUserDateRange']>>[number]; readonly payload: ReturnType<typeof decodeMealEvaluationSnapshot> }[],
+  ): readonly { name: string; unit: string; amount: string }[] {
+    const contributions = snapshots.flatMap(({ payload }) => payload.contributions.map((contribution) => ({
+      nutrientKey: contribution.nutrient.trim().toLowerCase(),
+      name: contribution.nutrient,
+      unit: contribution.unit!,
+      amount: contribution.amount,
+    })));
+    const totals = this.calculationKernel.aggregateContributions(contributions, [], 'input').contributions;
+    return [...totals]
+      .sort((left, right) => left.name.localeCompare(right.name) || left.unit.localeCompare(right.unit))
+      .map(({ name, unit, amount }) => ({ name, unit, amount }));
+  }
+
+  /**
+   * Snapshot v1 predates the unit-bearing contribution contract. Keep its
+   * original name-based unit fallback so historical summaries do not change.
+   */
+  private replayTotalsLegacy(
+    snapshots: readonly { readonly payload: ReturnType<typeof decodeMealEvaluationSnapshot> }[],
+  ): readonly { name: string; unit: string; amount: string }[] {
     const totals = new Map<string, { name: string; unit: string; amount: Decimal }>();
-    for (const snapshot of latest.values()) {
-      for (const contribution of decodeMealEvaluationSnapshot(snapshot).contributions) {
+    for (const { payload } of snapshots) {
+      for (const contribution of payload.contributions) {
         const key = contribution.nutrient.toLowerCase();
         const existing = totals.get(key);
-        totals.set(key, { name: existing?.name ?? contribution.nutrient, unit: existing?.unit ?? this.unitForNutrient(contribution.nutrient), amount: (existing?.amount ?? new Decimal(0)).plus(contribution.amount) });
+        totals.set(key, {
+          name: existing?.name ?? contribution.nutrient,
+          unit: existing?.unit ?? this.unitForNutrient(contribution.nutrient),
+          amount: (existing?.amount ?? new Decimal(0)).plus(contribution.amount),
+        });
       }
     }
-    return [...totals.values()].sort((left, right) => left.name.localeCompare(right.name)).map((total) => ({ name: total.name, unit: total.unit, amount: total.amount.toString() }));
+    return [...totals.values()]
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map((total) => ({ name: total.name, unit: total.unit, amount: total.amount.toString() }));
+  }
+
+  private isUnitAwareReplaySnapshot(
+    snapshot: Awaited<ReturnType<MealEvaluationSnapshotRepository['findForUserDateRange']>>[number],
+    payload: ReturnType<typeof decodeMealEvaluationSnapshot>,
+  ): boolean {
+    return snapshot.snapshotVersion === UNIT_AWARE_REPLAY_SNAPSHOT_VERSION
+      && payload.contributions.every((contribution) => contribution.unit != null && contribution.unit.trim() !== '');
   }
 
   private unitForNutrient(nutrient: string): string {

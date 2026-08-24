@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { createHash } from 'node:crypto';
+import { CanonicalCalculationKernel } from '../../calculation/index.js';
 import { NumericConstraintRule } from '../types/evaluation-rule.type.js';
 import { FoodEvaluationContribution, FoodEvaluationReason } from '../../evaluation/types/food-evaluation.type.js';
 import { MealAssessmentInput, MealAssessmentLimitationCode, MealAssessmentRuleResult, MealAssessmentSource } from '../types/meal-assessment.type.js';
@@ -13,6 +14,8 @@ import { MealAssessmentInput, MealAssessmentLimitationCode, MealAssessmentRuleRe
  * and resolved rules that are authoritative for the evaluation context.
  */
 export class MealAssessmentProjection {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   project(input: MealAssessmentInput): MealAssessmentSource {
     const contributions = input.contributions ?? [];
     const rules = input.resolvedRules
@@ -141,7 +144,11 @@ export class MealAssessmentProjection {
       const safetyReasons = compatibilityReasons.filter((reason) => this.canonical(reason.nutrient) === this.canonical(rule.measurementKey));
       if (safetyReasons.length === 0) return { value: null };
       return {
-        value: safetyReasons.reduce((sum, reason) => sum.plus(new Decimal(reason.measuredValue)), new Decimal(0)).toString(),
+        value: this.sumWithKernel(
+          safetyReasons.map((reason) => reason.measuredValue),
+          this.canonical(rule.measurementKey),
+          this.canonicalUnit(rule.unit),
+        ),
       };
     }
     if (matching.some((contribution) => contribution.unit == null || contribution.unit.trim() === '')) {
@@ -152,33 +159,49 @@ export class MealAssessmentProjection {
       return { value: null, limitationCode: 'unit-mismatch' };
     }
     return {
-      value: matching.reduce((sum, contribution) => sum.plus(new Decimal(contribution.amount)), new Decimal(0)).toString(),
+      value: this.sumWithKernel(
+        matching.map((contribution) => contribution.amount),
+        this.canonical(rule.measurementKey),
+        expectedUnit,
+      ),
     };
   }
 
   private aggregateContributions(contributions: readonly FoodEvaluationContribution[]): readonly FoodEvaluationContribution[] {
-    const totals = new Map<string, { nutrient: string; unit?: string; amount: Decimal; targetValue: string | null; explanation: string }>();
-    for (const contribution of contributions) {
-      const key = `${this.canonical(contribution.nutrient)}|${this.canonicalUnit(contribution.unit ?? '')}`;
-      const existing = totals.get(key);
-      totals.set(key, {
-        nutrient: existing?.nutrient ?? this.canonical(contribution.nutrient),
-        ...(contribution.unit == null ? {} : { unit: existing?.unit ?? contribution.unit }),
-        amount: (existing?.amount ?? new Decimal(0)).plus(new Decimal(contribution.amount)),
-        targetValue: existing?.targetValue ?? contribution.targetValue,
-        explanation: existing?.explanation ?? contribution.explanation,
+    const firstByKey = new Map<string, FoodEvaluationContribution>();
+    const kernelInput = contributions.map((contribution) => {
+      const nutrient = this.canonical(contribution.nutrient);
+      const unit = this.canonicalUnit(contribution.unit ?? '');
+      const key = `${nutrient}|${unit}`;
+      if (!firstByKey.has(key)) firstByKey.set(key, contribution);
+      return {
+        nutrientKey: nutrient,
+        name: nutrient,
+        unit,
+        amount: contribution.amount,
+      };
+    });
+    const totals = this.calculationKernel.aggregateContributions(kernelInput, [], 'input').contributions;
+    return [...totals]
+      .sort((left, right) => `${left.nutrientKey}|${left.unit}`.localeCompare(`${right.nutrientKey}|${right.unit}`))
+      .map((total) => {
+        const first = firstByKey.get(`${total.nutrientKey}|${total.unit}`);
+        return {
+          nutrient: total.nutrientKey,
+          ...(first?.unit == null ? {} : { unit: first.unit }),
+          amount: total.amount,
+          targetValue: first?.targetValue ?? null,
+          currentDailyValue: null,
+          explanation: first?.explanation ?? '',
+        };
       });
-    }
-    return [...totals.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([, value]) => ({
-        nutrient: value.nutrient,
-        ...(value.unit == null ? {} : { unit: value.unit }),
-        amount: value.amount.toString(),
-        targetValue: value.targetValue,
-        currentDailyValue: null,
-        explanation: value.explanation,
-      }));
+  }
+
+  private sumWithKernel(values: readonly string[], nutrientKey: string, unit: string): string {
+    const total = this.calculationKernel.aggregateContributions(
+      values.map((amount) => ({ nutrientKey, name: nutrientKey, unit, amount })),
+    ).contributions[0];
+    return total?.amount ?? '0';
   }
 
   private canonical(value: string): string {

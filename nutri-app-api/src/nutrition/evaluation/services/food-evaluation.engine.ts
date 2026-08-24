@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { CanonicalCalculationKernel } from '../../calculation/index.js';
 import { NutritionTotal } from '../../analysis/types/nutrition-total.type.js';
 import {
   FoodEvaluationContribution,
@@ -22,8 +23,35 @@ interface ConstraintEvaluation {
 }
 
 export class FoodEvaluationEngine {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   evaluate(input: FoodEvaluationInput): FoodEvaluationSource {
-    const totals = this.toTotals(input);
+    return this.evaluateWithKernel(input);
+  }
+
+  /**
+   * Kernel-backed implementation shared by the standalone Food Evaluation
+   * endpoint and the compatibility entrypoint above.
+   */
+  evaluateWithKernel(input: FoodEvaluationInput): FoodEvaluationSource {
+    const calculation = this.calculationKernel.calculateNutrients({
+      servingGrams: input.portionGrams,
+      nutrients: input.nutrients.map((nutrient) => ({
+        nutrientKey: this.canonicalNutrientName(nutrient.name),
+        name: this.canonicalNutrientName(nutrient.name),
+        unit: nutrient.unit,
+        amountPer100Grams: nutrient.amountPer100Grams,
+      })),
+    });
+    const totals = this.calculationKernel.aggregateContributions(calculation.contributions).contributions.map((contribution) => ({
+      name: contribution.nutrientKey,
+      unit: contribution.unit.trim().toLowerCase(),
+      amount: contribution.amount,
+    }));
+    return this.evaluateTotals(input, totals);
+  }
+
+  private evaluateTotals(input: FoodEvaluationInput, totals: readonly NutritionTotal[]): FoodEvaluationSource {
     const sodiumEvaluation = this.evaluateSodium(totals, input.targets.sodiumMilligrams);
     const protein = this.evaluateProtein(
       totals,
@@ -383,20 +411,6 @@ export class FoodEvaluationEngine {
       + (targets.saturatedFatGrams != null ? SATURATED_FAT_WEIGHT : 0)
       + (targets.addedSugarGrams != null ? ADDED_SUGAR_WEIGHT : 0)
       + (targets.cholesterolMilligrams != null ? CHOLESTEROL_WEIGHT : 0);
-  }
-
-  private toTotals(input: FoodEvaluationInput): NutritionTotal[] {
-    const totals = new Map<string, Decimal>();
-    for (const nutrient of input.nutrients) {
-      const key = `${this.canonicalNutrientName(nutrient.name)}|${nutrient.unit.trim().toLowerCase()}`;
-      const amount = new Decimal(nutrient.amountPer100Grams).mul(input.portionGrams).div(100);
-      const existing = totals.get(key);
-      totals.set(key, existing ? existing.plus(amount) : amount);
-    }
-    return [...totals.entries()].map(([key, amount]) => {
-      const [name, unit] = key.split('|');
-      return { name, unit, amount: amount.toString() };
-    });
   }
 
   private findTotal(totals: readonly NutritionTotal[], name: string, unit: string): NutritionTotal | undefined {

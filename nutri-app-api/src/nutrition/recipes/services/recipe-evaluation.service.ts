@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
+import { CanonicalCalculationKernel } from '../../calculation/index.js';
 import { FoodsService } from '../../foods/services/foods.service.js';
 import type { FoodDetailSource } from '../../foods/sources/food-detail.source.js';
 import { NutritionPolicyService } from '../../analysis/services/nutrition-policy.service.js';
@@ -29,6 +30,7 @@ interface ResolvedComponent {
 
 @Injectable()
 export class RecipeEvaluationService {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
   private readonly mealAssessmentProjection = new MealAssessmentProjection();
 
   constructor(
@@ -74,8 +76,8 @@ export class RecipeEvaluationService {
     const portionGrams = resolved.reduce((sum, item) => sum.plus(item.portionGrams), new Decimal(0)).div(yieldServings);
     if (!portionGrams.gt(0)) throw new RecipeEvaluationValidationError('Recipe must contain a positive evaluated portion.');
 
-    const profile = this.aggregateNutrients(resolved, yieldServings, portionGrams);
-    const evaluation = this.engine.evaluate({
+    const profile = this.calculateNutrientProfile(resolved, yieldServings, portionGrams);
+    const evaluation = this.engine.evaluateWithKernel({
       portionGrams: portionGrams.toString(),
       nutrients: profile,
       targets: targetCalculation.targets,
@@ -88,7 +90,7 @@ export class RecipeEvaluationService {
       quantity: component.quantity,
       unit: component.unit,
       portionGrams: componentGrams.div(yieldServings).toString(),
-      evaluation: this.engine.evaluate({
+      evaluation: this.engine.evaluateWithKernel({
         portionGrams: componentGrams.div(yieldServings).toString(),
         nutrients: this.toNutrients(food),
         targets: targetCalculation.targets,
@@ -154,20 +156,42 @@ export class RecipeEvaluationService {
     if (component.unit !== 'SERVING' || component.servingId == null) throw new RecipeEvaluationValidationError(`Recipe component ${component.id} requires a canonical serving.`);
     const serving = food.servings.find((item) => item.id === component.servingId);
     if (serving == null) throw new RecipeEvaluationValidationError(`Recipe component ${component.id} references a serving that does not belong to its Food.`);
-    return { component, food, portionGrams: new Decimal(serving.grams).mul(quantity) };
+    return {
+      component,
+      food,
+      portionGrams: new Decimal(this.calculationKernel.servingToGrams({
+        servingGrams: serving.grams,
+        quantity: component.quantity,
+      })),
+    };
   }
 
-  private aggregateNutrients(resolved: readonly ResolvedComponent[], yieldServings: Decimal, portionGrams: Decimal): FoodEvaluationNutrientInput[] {
-    const totals = new Map<string, { name: string; unit: string; amount: Decimal }>();
-    for (const { food, portionGrams: grams } of resolved) {
-      for (const item of food.nutrients) {
-        const key = `${item.nutrient.name.trim().toLowerCase()}|${item.nutrient.unit.trim().toLowerCase()}`;
-        const existing = totals.get(key);
-        const amount = new Decimal(item.amount).mul(grams).div(100).div(yieldServings);
-        totals.set(key, existing == null ? { name: item.nutrient.name, unit: item.nutrient.unit, amount } : { ...existing, amount: existing.amount.plus(amount) });
-      }
-    }
-    return [...totals.values()].map(({ name, unit, amount }) => ({ name, unit, amountPer100Grams: amount.mul(100).div(portionGrams).toString() }));
+  private calculateNutrientProfile(
+    resolved: readonly ResolvedComponent[],
+    yieldServings: Decimal,
+    portionGrams: Decimal,
+  ): FoodEvaluationNutrientInput[] {
+    const result = this.calculationKernel.calculateComposition({
+      items: resolved.map(({ food, portionGrams: grams }) => ({
+        servingGrams: grams.toString(),
+        nutrients: food.nutrients.map(({ nutrient, amount }) => ({
+          nutrientKey: nutrient.name.trim().toLowerCase(),
+          name: nutrient.name,
+          unit: nutrient.unit,
+          amountPer100Grams: amount,
+        })),
+      })),
+    });
+
+    return result.contributions.map(({ name, unit, amount }) => ({
+      name,
+      unit,
+      amountPer100Grams: new Decimal(amount)
+        .div(yieldServings)
+        .mul(100)
+        .div(portionGrams)
+        .toString(),
+    }));
   }
 
   private toNutrients(food: FoodDetailSource): FoodEvaluationNutrientInput[] {

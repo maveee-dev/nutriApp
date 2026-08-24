@@ -1,0 +1,387 @@
+NutriApp Food Presentation Grammar Analysis
+============================================
+Generated: 2026-08-23T08:36:41.732Z
+Read-only: yes
+Total foods: 8156
+
+Meat & Poultry
+--------------
+Animals
+- beef: 1122 (13.76%)
+- pork: 437 (5.36%)
+- chicken: 401 (4.92%)
+- lamb: 299 (3.67%)
+- turkey: 173 (2.12%)
+- veal: 111 (1.36%)
+- bison: 16 (0.20%)
+- duck: 14 (0.17%)
+- goose: 10 (0.12%)
+- goat: 6 (0.07%)
+- rabbit: 5 (0.06%)
+- venison: 1 (0.01%)
+
+Cuts
+- steak: 407 (4.99%)
+- loin: 323 (3.96%)
+- roast: 256 (3.14%)
+- round: 181 (2.22%)
+- shoulder: 179 (2.19%)
+- rib: 176 (2.16%)
+- chuck: 166 (2.04%)
+- leg: 113 (1.39%)
+- sirloin: 110 (1.35%)
+- ground: 92 (1.13%)
+- tenderloin: 77 (0.94%)
+- breast: 69 (0.85%)
+- shank: 68 (0.83%)
+- rib eye: 56 (0.69%)
+- brisket: 43 (0.53%)
+- drumstick: 40 (0.49%)
+- thigh: 40 (0.49%)
+- wing: 36 (0.44%)
+- filet: 26 (0.32%)
+- rump: 24 (0.29%)
+- chop: 21 (0.26%)
+- ribeye: 20 (0.25%)
+- flank: 19 (0.23%)
+- fillet: 3 (0.04%)
+- cutlet: 2 (0.02%)
+
+Preparations
+- cooked: 1140 (13.98%)
+- roasted: 359 (4.40%)
+- braised: 247 (3.03%)
+- broiled: 190 (2.33%)
+- grilled: 155 (1.90%)
+- fried: 126 (1.54%)
+- stewed: 27 (0.33%)
+- baked: 13 (0.16%)
+- boiled: 8 (0.10%)
+
+States
+- cooked: 1140 (13.98%)
+- raw: 822 (10.08%)
+- fresh: 288 (3.53%)
+- canned: 77 (0.94%)
+- frozen: 51 (0.63%)
+- smoked: 23 (0.28%)
+- dehydrated: 1 (0.01%)
+- dried: 1 (0.01%)
+
+Animal + cut combinations
+- beef + steak: 396 (4.86%)
+- beef + roast: 245 (3.00%)
+- beef + round: 167 (2.05%)
+- beef + chuck: 164 (2.01%)
+- beef + loin: 157 (1.92%)
+- beef + rib: 131 (1.61%)
+- pork + loin: 129 (1.58%)
+- lamb + shoulder: 67 (0.82%)
+- lamb + leg: 65 (0.80%)
+- beef + rib eye: 56 (0.69%)
+- beef + sirloin: 56 (0.69%)
+- beef + tenderloin: 54 (0.66%)
+- beef + ground: 49 (0.60%)
+- beef + shoulder: 48 (0.59%)
+- beef + brisket: 43 (0.53%)
+- pork + shoulder: 39 (0.48%)
+- chicken + breast: 36 (0.44%)
+- lamb + shank: 36 (0.44%)
+- chicken + drumstick: 31 (0.38%)
+- chicken + thigh: 31 (0.38%)
+- lamb + loin: 29 (0.36%)
+- lamb + sirloin: 28 (0.34%)
+- chicken + wing: 25 (0.31%)
+- beef + filet: 24 (0.29%)
+- veal + shoulder: 22 (0.27%)
+- pork + leg: 21 (0.26%)
+- pork + rib: 20 (0.25%)
+- pork + rump: 20 (0.25%)
+- pork + shank: 20 (0.25%)
+- beef + flank: 19 (0.23%)
+- turkey + breast: 19 (0.23%)
+- beef + ribeye: 18 (0.22%)
+- pork + sirloin: 18 (0.22%)
+- lamb + rib: 17 (0.21%)
+- lamb + chop: 14 (0.17%)
+- veal + leg: 14 (0.17%)
+- pork + ground: 13 (0.16%)
+- pork + tenderloin: 13 (0.16%)
+- turkey + ground: 13 (0.16%)
+- veal + round: 12 (0.15%)
+- turkey + wing: 11 (0.13%)
+- veal + shank: 10 (0.12%)
+- chicken + leg: 9 (0.11%)
+- turkey + drumstick: 9 (0.11%)
+- turkey + thigh: 9 (0.11%)
+- lamb + tenderloin: 8 (0.10%)
+- veal + loin: 8 (0.10%)
+- veal + rib: 8 (0.10%)
+- lamb + ground: 6 (0.07%)
+- lamb + roast: 6 (0.07%)
+- veal + breast: 6 (0.07%)
+- veal + chop: 6 (0.07%)
+- veal + sirloin: 6 (0.07%)
+- bison + ground: 5 (0.06%)
+- beef + rump: 4 (0.05%)
+- bison + steak: 4 (0.05%)
+- lamb + steak: 4 (0.05%)
+- bison + shoulder: 3 (0.04%)
+- chicken + fillet: 3 (0.04%)
+- chicken + ground: 3 (0.04%)
+- duck + breast: 3 (0.04%)
+- pork + steak: 3 (0.04%)
+- veal + ground: 3 (0.04%)
+- beef + shank: 2 (0.02%)
+- bison + chuck: 2 (0.02%)
+- bison + ribeye: 2 (0.02%)
+- bison + round: 2 (0.02%)
+- bison + sirloin: 2 (0.02%)
+- chicken + filet: 2 (0.02%)
+- chicken + tenderloin: 2 (0.02%)
+- duck + leg: 2 (0.02%)
+- lamb + breast: 2 (0.02%)
+- pork + breast: 2 (0.02%)
+- pork + roast: 2 (0.02%)
+- turkey + leg: 2 (0.02%)
+- turkey + roast: 2 (0.02%)
+- veal + cutlet: 2 (0.02%)
+- veal + roast: 2 (0.02%)
+- goose + breast: 1 (0.01%)
+- pork + chop: 1 (0.01%)
+
+Fish & Seafood
+--------------
+Species
+- salmon: 49 (0.60%)
+- tuna: 19 (0.23%)
+- crab: 13 (0.16%)
+- herring: 11 (0.13%)
+- cod: 10 (0.12%)
+- mackerel: 10 (0.12%)
+- trout: 9 (0.11%)
+- whitefish: 8 (0.10%)
+- bass: 7 (0.09%)
+- catfish: 7 (0.09%)
+- halibut: 7 (0.09%)
+- pollock: 7 (0.09%)
+- haddock: 4 (0.05%)
+- sardine: 3 (0.04%)
+- snapper: 3 (0.04%)
+- swordfish: 3 (0.04%)
+- tilapia: 3 (0.04%)
+- anchovy: 2 (0.02%)
+- mahi mahi: 1 (0.01%)
+
+Seafood types
+- fish: 260 (3.19%)
+- oyster: 27 (0.33%)
+- shrimp: 19 (0.23%)
+- clam: 15 (0.18%)
+- crab: 13 (0.16%)
+- scallop: 7 (0.09%)
+- lobster: 5 (0.06%)
+- squid: 3 (0.04%)
+- mussel: 2 (0.02%)
+
+Preparations
+- cooked: 108 (1.32%)
+- fried: 14 (0.17%)
+- boiled: 3 (0.04%)
+- braised: 2 (0.02%)
+- steamed: 1 (0.01%)
+
+States
+- raw: 119 (1.46%)
+- cooked: 108 (1.32%)
+- canned: 49 (0.60%)
+- frozen: 13 (0.16%)
+- smoked: 11 (0.13%)
+- fresh: 7 (0.09%)
+- dried: 5 (0.06%)
+- pasteurized: 1 (0.01%)
+- unsalted: 1 (0.01%)
+
+Cheese & Dairy
+--------------
+Cheese varieties
+- american: 20 (0.25%)
+- cheddar: 15 (0.18%)
+- cottage: 11 (0.13%)
+- mozzarella: 10 (0.12%)
+- parmesan: 9 (0.11%)
+- swiss: 8 (0.10%)
+- roquefort: 5 (0.06%)
+- colby: 3 (0.04%)
+- cream cheese: 3 (0.04%)
+- provolone: 3 (0.04%)
+- ricotta: 3 (0.04%)
+- feta: 2 (0.02%)
+- brie: 1 (0.01%)
+- gouda: 1 (0.01%)
+- monterey jack: 1 (0.01%)
+
+Milk types
+- chocolate: 80 (0.98%)
+- whole: 76 (0.93%)
+- nonfat: 47 (0.58%)
+- low fat: 30 (0.37%)
+- soy: 20 (0.25%)
+- condensed: 13 (0.16%)
+- skim: 12 (0.15%)
+- almond: 11 (0.13%)
+- buttermilk: 7 (0.09%)
+- powdered: 5 (0.06%)
+- evaporated: 4 (0.05%)
+- goat: 4 (0.05%)
+
+Yogurt types
+- yogurt: 86 (1.05%)
+- whole milk: 59 (0.72%)
+- nonfat: 47 (0.58%)
+- regular: 36 (0.44%)
+- greek: 31 (0.38%)
+- low fat: 30 (0.37%)
+- vanilla: 28 (0.34%)
+- plain: 24 (0.29%)
+
+Butter, cream, and other dairy terms
+- cream: 137 (1.68%)
+- butter: 108 (1.32%)
+- margarine: 61 (0.75%)
+- sour cream: 11 (0.13%)
+- half and half: 3 (0.04%)
+
+Nuts & Seeds
+------------
+- peanut: 60 (0.74%)
+- coconut: 43 (0.53%)
+- almond: 31 (0.38%)
+- sesame: 28 (0.34%)
+- sunflower: 19 (0.23%)
+- cashew: 8 (0.10%)
+- pecan: 8 (0.10%)
+- pistachio: 7 (0.09%)
+- macadamia: 5 (0.06%)
+- hazelnut: 4 (0.05%)
+- tahini: 4 (0.05%)
+- walnut: 2 (0.02%)
+- chestnut: 1 (0.01%)
+
+Beverages
+---------
+- milk: 224 (2.75%)
+- water: 223 (2.73%)
+- juice: 183 (2.24%)
+- alcoholic beverage: 65 (0.80%)
+- tea: 42 (0.51%)
+- wine: 38 (0.47%)
+- coffee: 31 (0.38%)
+- energy drink: 16 (0.20%)
+- beer: 13 (0.16%)
+- soda: 10 (0.12%)
+- soft drink: 1 (0.01%)
+
+Common Descriptor Vocabulary
+----------------------------
+Preparation words
+- cooked: 1789 (21.93%)
+- roasted: 444 (5.44%)
+- boiled: 364 (4.46%)
+- braised: 249 (3.05%)
+- broiled: 206 (2.53%)
+- fried: 191 (2.34%)
+- grilled: 161 (1.97%)
+- baked: 83 (1.02%)
+- stewed: 45 (0.55%)
+- steamed: 18 (0.22%)
+- stir fried: 7 (0.09%)
+- sautéed: 3 (0.04%)
+- scrambled: 3 (0.04%)
+- poached: 1 (0.01%)
+
+State words
+- cooked: 1789 (21.93%)
+- raw: 1550 (19.00%)
+- canned: 519 (6.36%)
+- frozen: 403 (4.94%)
+- fresh: 316 (3.87%)
+- dried: 126 (1.54%)
+- ready to eat: 121 (1.48%)
+- smoked: 36 (0.44%)
+- pasteurized: 29 (0.36%)
+- reconstituted: 29 (0.36%)
+- unsalted: 21 (0.26%)
+- dehydrated: 20 (0.25%)
+- processed: 2 (0.02%)
+
+Quality descriptors
+- choice: 350 (4.29%)
+- select: 251 (3.08%)
+- prime: 16 (0.20%)
+- extra crispy: 9 (0.11%)
+- grade a: 3 (0.04%)
+- jumbo: 1 (0.01%)
+
+Size descriptors
+- small: 45 (0.55%)
+- large: 38 (0.47%)
+- medium: 11 (0.13%)
+- mini: 6 (0.07%)
+- extra large: 1 (0.01%)
+- jumbo: 1 (0.01%)
+
+Processing descriptors
+- instant: 87 (1.07%)
+- fortified: 68 (0.83%)
+- reduced fat: 53 (0.65%)
+- low sodium: 44 (0.54%)
+- pasteurized: 29 (0.36%)
+- reduced sodium: 24 (0.29%)
+- dehydrated: 20 (0.25%)
+- imitation: 12 (0.15%)
+- powdered: 8 (0.10%)
+- glucose reduced: 4 (0.05%)
+- hydrolyzed: 2 (0.02%)
+- concentrated: 1 (0.01%)
+
+Highest-Impact Reusable Grammar Rules
+-------------------------------------
+1. state-and-preparation-as-variants — 4764 foods (58.41%)
+   Keep raw/cooked/frozen/dried and grilled/roasted/fried descriptors secondary unless they define a distinct dish.
+   Examples: Abiyuch, raw | Acerola juice, raw | Acerola, (west indian cherry), raw | Agave, cooked (Southwest) | Agave, dried (Southwest)
+
+2. animal-plus-cut — 2548 foods (31.24%)
+   Promote an animal and cut together, while leaving state and preparation descriptors in variantLabel.
+   Examples: APPLEBEE'S, 9 oz house sirloin steak | APPLEBEE'S, chicken tenders platter | APPLEBEE'S, chicken tenders, from kids' menu | ARBY'S, roast beef sandwich, classic | BANQUET, Salisbury Steak With Gravy, family size, frozen, unprepared
+
+3. beverage-type-first — 846 foods (10.37%)
+   Promote the beverage type or product instead of Alcoholic Beverage or Beverages as the title.
+   Examples: Acerola juice, raw | Alcoholic Beverage, wine, table, red, Barbera | Alcoholic Beverage, wine, table, red, Burgundy | Alcoholic Beverage, wine, table, red, Cabernet Franc | Alcoholic Beverage, wine, table, red, Cabernet Sauvignon
+
+4. fish-species-first — 176 foods (2.16%)
+   Promote a fish species or seafood type instead of the generic Fish category.
+   Examples: CRACKER BARREL, farm raised catfish platter | Cod, Pacific or Alaskan, frozen, wild caught | Crustaceans, crab, alaska king, cooked, moist heat | Crustaceans, crab, alaska king, imitation, made from surimi | Crustaceans, crab, alaska king, raw
+
+5. cheese-variety-first — 95 foods (1.16%)
+   Promote the cheese variety or product form and retain processing descriptors as variants.
+   Examples: Cereals, QUAKER, Instant Grits Product with American Cheese Flavor, dry | Cereals, QUAKER, corn grits, instant, cheddar cheese flavor, dry | Cheese food, cold pack, American | Cheese food, pasteurized process, American, vitamin D fortified | Cheese food, pasteurized process, American, without added vitamin D
+
+Ambiguous Terms Requiring Caution
+---------------------------------
+- cooked: 1789 (Describes preparation state but may also occur inside a dish name.)
+- raw: 1550 (Usually a state descriptor but can be part of a canonical product name.)
+- whole: 332 (Often a redundant quality descriptor, but can distinguish a food form.)
+- roast: 258 (May be a meat cut, a preparation method, or a dish name.)
+- milk: 224 (May be dairy milk, plant milk, milk powder, or a food ingredient.)
+- oil: 182 (May be cooking oil, fish oil, nut oil, or a prepared product.)
+- cream: 137 (May be a dairy product, a soup/sauce base, or a flavor descriptor.)
+- ground: 115 (May be a meat cut, coffee form, spice form, or processed ingredient.)
+- butter: 108 (May be dairy butter, nut butter, seed butter, or a prepared ingredient.)
+- tea: 42 (May be a beverage, an ingredient, or a flavor descriptor.)
+
+Interpretation
+--------------
+Counts represent foods whose canonical names contain each normalized term at least once.
+They are planning signals for reusable grammar, not automatic approval to promote a term into displayName.
+Quality, size, state, preparation, brand, and category terms should generally remain variantLabel candidates unless the grammar rule establishes that they define the food concept.

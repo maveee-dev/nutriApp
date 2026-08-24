@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { CanonicalCalculationKernel } from '../../../calculation/index.js';
 import { MealEvaluationSnapshotSource } from '../../../../meals/sources/meal-evaluation-snapshot.source.js';
 import { decodeMealEvaluationSnapshot } from '../../../../meals/snapshots/meal-evaluation-snapshot.adapter.js';
 import { NutritionPolicyDeferralSource, NutritionTargetProvenance } from '../../types/nutrition-targets.type.js';
@@ -28,6 +29,8 @@ interface DiabetesCarbohydrateAdherenceInput {
 
 /** Calculates daily adherence from immutable evaluation contributions only. */
 export class DiabetesCarbohydrateAdherencePolicy {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   calculate(input: DiabetesCarbohydrateAdherenceInput): DiabetesCarbohydrateAdherenceResult {
     const isApplicable = input.targetCarbohydrateGrams != null
       || input.targetProvenance?.target === 'carbohydrateGrams'
@@ -63,10 +66,15 @@ export class DiabetesCarbohydrateAdherencePolicy {
       };
     }
 
-    const consumed = coveredSnapshots.reduce(
-      (total, snapshot) => total.plus(this.carbohydrateAmount(snapshot) ?? 0),
-      new Decimal(0),
-    );
+    const consumedAmount = this.calculationKernel.aggregateContributions(
+      coveredSnapshots.map((snapshot) => ({
+        nutrientKey: 'carbohydrates',
+        name: 'carbohydrates',
+        unit: 'g',
+        amount: this.carbohydrateAmount(snapshot)!.toString(),
+      })),
+    ).contributions[0]?.amount ?? '0';
+    const consumed = new Decimal(consumedAmount);
     const target = new Decimal(input.targetCarbohydrateGrams);
     const difference = target.minus(consumed);
     const remaining = Decimal.max(difference, 0);

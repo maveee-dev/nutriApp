@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Decimal } from 'decimal.js';
+import { CanonicalCalculationKernel } from '../../../calculation/index.js';
 import { decodeMealEvaluationSnapshot } from '../../../../meals/snapshots/meal-evaluation-snapshot.adapter.js';
 import { MealEvaluationSnapshotSource } from '../../../../meals/sources/meal-evaluation-snapshot.source.js';
 import { NumericConstraintRule } from '../../types/evaluation-rule.type.js';
@@ -20,6 +21,8 @@ export interface NumericDailyAdherenceResult extends DailyAdherenceSource {
  * the measurement key, unit, and semantics.
  */
 export class NumericDailyAdherencePolicy {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   calculate(
     rule: NumericConstraintRule,
     snapshots: readonly MealEvaluationSnapshotSource[],
@@ -52,7 +55,17 @@ export class NumericDailyAdherencePolicy {
       }, replay);
     }
 
-    const consumed = values.reduce<Decimal>((sum, value) => sum.plus(value ?? new Decimal(0)), new Decimal(0));
+    const consumedAmount = this.calculationKernel.aggregateContributions(
+      values
+        .filter((value): value is Decimal => value != null)
+        .map((value) => ({
+          nutrientKey: rule.measurementKey,
+          name: rule.measurementKey,
+          unit: rule.unit,
+          amount: value.toString(),
+        })),
+    ).contributions[0]?.amount ?? '0';
+    const consumed = new Decimal(consumedAmount);
     const target = new Decimal(rule.targetValue);
     const remaining = Decimal.max(target.minus(consumed), 0);
     const exceeded = rule.kind === 'upper-limit' ? Decimal.max(consumed.minus(target), 0) : null;

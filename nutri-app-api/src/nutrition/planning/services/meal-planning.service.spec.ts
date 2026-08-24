@@ -1,5 +1,7 @@
 import { jest } from '@jest/globals';
 import { MealPlanningService } from './meal-planning.service.js';
+import { FoodEvaluationEngine } from '../../evaluation/services/food-evaluation.engine.js';
+import { FoodEvaluationService } from '../../evaluation/services/food-evaluation.service.js';
 
 describe('MealPlanningService', () => {
   it('uses complete recipe/template meals when the shadow planner has a valid selection', async () => {
@@ -102,6 +104,57 @@ describe('MealPlanningService', () => {
     expect(result.items.map(({ foodId }) => foodId)).toEqual(['food-3', 'food-2', 'food-1', 'food-0']);
     expect(result.policySetFingerprint).toBe('policy-fingerprint-1');
     expect(result.items[0]?.evaluation.score).toBe(30);
+  });
+
+  it('uses the Kernel-backed contextual Food Evaluation for the fallback path', async () => {
+    const food = {
+      id: 'food-kernel',
+      name: 'Kernel Food',
+      planningClass: 'MEAL_ELIGIBLE' as const,
+      category: { id: 'category-kernel', name: 'Meals', description: null },
+      servings: [{ id: 'serving-kernel', name: '1 serving', grams: '100' }],
+      nutrients: [
+        { nutrient: { name: 'Sodium', unit: 'mg' }, amount: '100' },
+        { nutrient: { name: 'Protein', unit: 'g' }, amount: '10' },
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const foodsService = {
+      findMany: jest.fn().mockResolvedValue({ items: [food], meta: {} }),
+      findDetailById: jest.fn().mockResolvedValue(food),
+    };
+    const targetCalculation = {
+      targets: { sodiumMilligrams: '2300', proteinGrams: null },
+      adjustments: [],
+      deferredPolicies: [],
+    };
+    const policyService = {
+      loadContext: jest.fn().mockResolvedValue({ profile: null, conditionCodes: [], energyGoal: 'maintenance', asOf: new Date(), evidence: {} }),
+      calculateFromContext: jest.fn().mockReturnValue(targetCalculation),
+      getPolicySetFingerprint: jest.fn().mockReturnValue('policy-fingerprint-kernel'),
+    };
+    const evaluationService = new FoodEvaluationService(
+      { findDetailById: jest.fn().mockResolvedValue(food) } as never,
+      policyService as never,
+      new FoodEvaluationEngine(),
+    );
+    const service = new MealPlanningService(foodsService as never, policyService as never, evaluationService);
+
+    const result = await service.generate('user-1', '2026-08-19');
+
+    expect(result.provenance.planner).toBe('food-fallback');
+    expect(result.items[0]?.evaluation).toMatchObject({
+      score: 96,
+      evaluationStatus: 'evaluated',
+      coverage: 100,
+    });
+    expect(result.items[0]?.evaluation.reasons).toEqual([
+      expect.objectContaining({ nutrient: 'sodium', measuredValue: '100' }),
+    ]);
+    expect(result.items[0]?.evaluation.contributions).toEqual([
+      expect.objectContaining({ nutrient: 'protein', amount: '10' }),
+    ]);
   });
 
   it('never selects alcohol, condiments, beverages, or ingredients as complete meals', async () => {

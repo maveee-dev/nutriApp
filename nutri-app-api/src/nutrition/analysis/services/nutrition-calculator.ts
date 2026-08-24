@@ -1,33 +1,31 @@
-import { Decimal } from 'decimal.js';
+import { CanonicalCalculationKernel } from '../../calculation/index.js';
 import { NutritionAnalysisItemSource } from '../sources/nutrition-analysis.source.js';
 import { NutritionTotal } from '../types/nutrition-total.type.js';
 
 export class NutritionCalculator {
+  private readonly calculationKernel = new CanonicalCalculationKernel();
+
   calculate(items: readonly NutritionAnalysisItemSource[]): NutritionTotal[] {
-    const totals = new Map<string, { name: string; unit: string; value: Decimal }>();
+    const result = this.calculationKernel.calculateComposition({
+      items: items.map((item) => ({
+        servingGrams: item.servingGrams,
+        quantity: item.quantity,
+        nutrients: item.nutrients.map((nutrient) => ({
+          nutrientKey: nutrient.name.trim().toLowerCase(),
+          name: nutrient.name,
+          unit: nutrient.unit,
+          amountPer100Grams: nutrient.amountPer100Grams,
+        })),
+      })),
+      aggregationOrder: 'input',
+    });
 
-    for (const item of items) {
-      for (const nutrient of item.nutrients) {
-        const key = `${nutrient.name.trim().toLowerCase()}|${nutrient.unit.trim().toLowerCase()}`;
-        const value = new Decimal(nutrient.amountPer100Grams)
-          .mul(item.servingGrams)
-          .mul(item.quantity)
-          .div(100);
-        const existing = totals.get(key);
-        totals.set(key, {
-          name: existing?.name ?? nutrient.name,
-          unit: existing?.unit ?? nutrient.unit,
-          value: existing ? existing.value.plus(value) : value,
-        });
-      }
-    }
-
-    return [...totals.values()]
+    return [...result.contributions]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((total) => ({
-        name: total.name,
-        unit: total.unit,
-        amount: total.value.toString(),
+      .map((contribution) => ({
+        name: contribution.name,
+        unit: contribution.unit,
+        amount: contribution.amount,
       }));
   }
 }

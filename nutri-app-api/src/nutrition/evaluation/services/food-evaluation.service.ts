@@ -16,7 +16,7 @@ export class FoodEvaluationService {
   ) {}
 
   async evaluate(userId: string, foodId: string, servingId: string, quantity: string): Promise<FoodEvaluationSource> {
-    const result = await this.evaluateWithContext(userId, foodId, servingId, quantity);
+    const result = await this.evaluateWithKernelContext(userId, foodId, servingId, quantity);
     return result.evaluation;
   }
 
@@ -29,6 +29,31 @@ export class FoodEvaluationService {
       ? await this.policyService.calculateForUser(userId)
       : this.policyService.calculateFromContext(context);
     const evaluation = this.engine.evaluate({
+      portionGrams: new Decimal(serving.grams).mul(quantity).toString(),
+      nutrients: food.nutrients.map((item) => ({
+        name: item.nutrient.name,
+        unit: item.nutrient.unit,
+        amountPer100Grams: item.amount,
+      })),
+      targets: targetCalculation.targets,
+      targetCalculation,
+    });
+    return { evaluation, targetCalculation };
+  }
+
+  /**
+   * Kernel-backed path for both the standalone Food Evaluation endpoint and
+   * contextual callers such as the planner fallback and snapshot capture.
+   */
+  private async evaluateWithKernelContext(userId: string, foodId: string, servingId: string, quantity: string, context?: NutritionEvaluationContext): Promise<FoodEvaluationWithContextSource> {
+    const food = await this.foodsRepository.findDetailById(foodId);
+    if (!food) throw new FoodNotFoundError();
+    const serving = food.servings.find((item) => item.id === servingId);
+    if (!serving) throw new FoodNotFoundError();
+    const targetCalculation = context == null
+      ? await this.policyService.calculateForUser(userId)
+      : this.policyService.calculateFromContext(context);
+    const evaluation = this.engine.evaluateWithKernel({
       portionGrams: new Decimal(serving.grams).mul(quantity).toString(),
       nutrients: food.nutrients.map((item) => ({
         name: item.nutrient.name,
