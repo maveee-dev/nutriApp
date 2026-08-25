@@ -22,6 +22,7 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get<string>('corsOrigin') ?? (nodeEnv === 'production' ? false : true),
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   const fastify = app.getHttpAdapter().getInstance();
