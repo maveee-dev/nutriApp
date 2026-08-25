@@ -1,7 +1,8 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { Logger } from '@nestjs/common';
 import passport from 'passport';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { InvalidGoogleStateError } from '../errors/invalid-google-state.error.js';
@@ -9,6 +10,8 @@ import type { GoogleAccountSource } from '../types/google-account.source.js';
 
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
+  private readonly logger = new Logger(GoogleAuthGuard.name);
+
   constructor(private readonly configService: ConfigService) {
     super();
   }
@@ -20,15 +23,21 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     if (isCallbackRequest(request)) {
       const expectedState = request.cookies?.[GOOGLE_STATE_COOKIE];
       const actualState = readQueryState(request);
+      request.googleOAuthRequestId = stateRequestId(actualState ?? expectedState);
+      this.logger.log(`[Google OAuth] [${request.googleOAuthRequestId}] entering /auth/google/callback`);
 
       if (expectedState == null || actualState == null || !statesMatch(expectedState, actualState)) {
+        this.logger.warn(`[Google OAuth] [${request.googleOAuthRequestId}] callback state validation failed`);
         throw new InvalidGoogleStateError();
       }
 
+      this.logger.log(`[Google OAuth] [${request.googleOAuthRequestId}] callback state validated`);
       reply.clearCookie(GOOGLE_STATE_COOKIE, this.cookieOptions());
     } else {
       const state = randomBytes(32).toString('base64url');
       request.googleOAuthState = state;
+      request.googleOAuthRequestId = stateRequestId(state);
+      this.logger.log(`[Google OAuth] [${request.googleOAuthRequestId}] entering /auth/google`);
       reply.setCookie(GOOGLE_STATE_COOKIE, state, this.cookieOptions());
     }
 
@@ -53,6 +62,9 @@ export class GoogleAuthGuard extends AuthGuard('google') {
 
         try {
           authenticatedUser = this.handleRequest(err, user, info, context, status);
+          if (authenticatedUser != null) {
+            this.logger.log(`[Google OAuth] [${request.googleOAuthRequestId ?? 'unknown'}] Passport authenticated Google user`);
+          }
           resolve();
         } catch (error) {
           reject(error);
@@ -103,6 +115,7 @@ type GoogleOAuthRequest = FastifyRequest & {
   googleOAuthState?: string;
   authInfo?: unknown;
   user?: GoogleAccountSource;
+  googleOAuthRequestId?: string;
 };
 
 function isCallbackRequest(request: GoogleOAuthRequest): boolean {
@@ -119,6 +132,14 @@ function statesMatch(expected: string, actual: string): boolean {
   const actualBytes = Buffer.from(actual, 'utf8');
 
   return expectedBytes.length === actualBytes.length && timingSafeEqual(expectedBytes, actualBytes);
+}
+
+function stateRequestId(state: string | undefined): string {
+  if (state == null || state.length === 0) {
+    return 'unknown';
+  }
+
+  return createHash('sha256').update(state).digest('hex').slice(0, 12);
 }
 
 /**

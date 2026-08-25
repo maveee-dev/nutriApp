@@ -106,6 +106,7 @@ export class AuthService {
   }
 
   async loginWithGoogle(account: GoogleAccountSource) {
+    this.logger.log('[Google OAuth] before looking up or creating user');
     if (!account.emailVerified) {
       throw new InvalidGoogleAccountError();
     }
@@ -138,6 +139,7 @@ export class AuthService {
       user = linkedUser;
     }
 
+    this.logger.log('[Google OAuth] before creating JWT/access and refresh tokens');
     const tokens = await this.issueTokens(user);
 
     return {

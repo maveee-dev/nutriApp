@@ -14,13 +14,34 @@ export const GoogleSignInButton: React.FC = () => {
 
   useEffect(() => {
     const handleGoogleMessage = (event: MessageEvent) => {
-      if (popupRef.current && event.source !== popupRef.current) return;
-
       const expectedOrigin = import.meta.env.VITE_AUTH_ORIGIN as string | undefined;
-      if (expectedOrigin && event.origin !== expectedOrigin) return;
+      console.debug('[NutriApp OAuth] message received', {
+        eventOrigin: event.origin,
+        expectedOrigin: expectedOrigin ?? null,
+      });
+
+      if (popupRef.current && event.source !== popupRef.current) {
+        console.warn('[NutriApp OAuth] message rejected: source mismatch.');
+        return;
+      }
+
+      if (expectedOrigin && event.origin !== expectedOrigin) {
+        console.warn('[NutriApp OAuth] message rejected: origin mismatch.', {
+          eventOrigin: event.origin,
+          expectedOrigin,
+        });
+        return;
+      }
 
       const message = event.data as (Partial<LoginResponse> & { type?: string }) | undefined;
-      if (message?.type !== 'nutriapp:google-auth' || !message.accessToken || !message.user) return;
+      if (message?.type !== 'nutriapp:google-auth' || !message.accessToken || !message.user) {
+        console.warn('[NutriApp OAuth] message rejected: invalid payload.', {
+          type: message?.type ?? null,
+          hasAccessToken: Boolean(message?.accessToken),
+          hasUser: Boolean(message?.user),
+        });
+        return;
+      }
 
       setAuth(message.accessToken, message.user);
       popupRef.current?.close();

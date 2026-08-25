@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, UseGuards, Req, Res } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Get, UseGuards, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service.js';
@@ -21,6 +21,8 @@ import type { GoogleAccountSource } from './types/google-account.source.js';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
@@ -48,8 +50,8 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  googleAuth(): void {
-    // Passport redirects the browser to Google.
+  googleAuth(@Req() request: FastifyRequest): void {
+    this.logger.log(`[Google OAuth] [${this.googleOAuthRequestId(request)}] /auth/google controller reached; Passport redirect completed`);
   }
 
   @Get('google/callback')
@@ -58,17 +60,43 @@ export class AuthController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<LoginResponseDto> {
-    const googleAccount = (request as FastifyRequest & { user: GoogleAccountSource }).user;
-    const result = await this.authService.loginWithGoogle(googleAccount);
-    this.setRefreshTokenCookie(reply, result.refreshToken);
+    const requestId = this.googleOAuthRequestId(request);
 
-    const response = AuthMapper.toResponse(result);
+    this.logger.log(`[Google OAuth] [${requestId}] entering /auth/google/callback controller`);
 
-    if (request.headers?.accept?.includes('text/html')) {
-      this.sendGoogleBrowserBridge(reply, response);
+    try {
+      const googleAccount = (request as FastifyRequest & { user: GoogleAccountSource }).user;
+      this.logger.log(`[Google OAuth] [${requestId}] Passport user is available; before user lookup/create`);
+      const result = await this.authService.loginWithGoogle(googleAccount);
+      this.logger.log(`[Google OAuth] [${requestId}] before setting refresh-token cookie`);
+      this.setRefreshTokenCookie(reply, result.refreshToken);
+
+      const response = AuthMapper.toResponse(result);
+
+      const acceptsHtml = request.headers?.accept?.includes('text/html') ?? false;
+      const targetOrigin = this.configService.get<string>('authFrontendUrl');
+      const willSendHtmlBridge = acceptsHtml && targetOrigin != null;
+
+      this.logger.log(`[Google OAuth] [${requestId}] callback response decision: ${JSON.stringify({
+        acceptsHtml,
+        authFrontendUrlDefined: targetOrigin != null,
+        targetOrigin: targetOrigin ?? null,
+        path: willSendHtmlBridge ? 'html-bridge' : 'json',
+      })}`);
+
+      if (acceptsHtml) {
+        this.sendGoogleBrowserBridge(reply, response, requestId);
+      }
+
+      this.logger.log(`[Google OAuth] [${requestId}] returning ${willSendHtmlBridge ? 'popup HTML bridge' : 'JSON response'}`);
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `[Google OAuth] [${requestId}] callback failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
-
-    return response;
   }
 
   @Post('refresh')
@@ -145,10 +173,16 @@ export class AuthController {
     };
   }
 
-  private sendGoogleBrowserBridge(reply: FastifyReply, response: LoginResponseDto): void {
+  private sendGoogleBrowserBridge(reply: FastifyReply, response: LoginResponseDto, requestId: string): void {
     const targetOrigin = this.configService.get<string>('authFrontendUrl');
 
+    this.logger.log(`[Google OAuth] [${requestId}] HTML bridge requested: ${JSON.stringify({
+      authFrontendUrlDefined: targetOrigin != null,
+      targetOrigin: targetOrigin ?? null,
+    })}`);
+
     if (targetOrigin == null) {
+      this.logger.warn(`[Google OAuth] [${requestId}] HTML bridge skipped because AUTH_FRONTEND_URL is undefined.`);
       return;
     }
 
@@ -158,6 +192,7 @@ export class AuthController {
       .replace(/&/g, '\\u0026');
     const target = JSON.stringify(targetOrigin);
 
+    this.logger.log(`[Google OAuth] [${requestId}] immediately before sending popup HTML`);
     reply.type('text/html; charset=utf-8').send(`<!doctype html>
 <html lang="en">
   <head><meta charset="utf-8"><title>NutriApp sign-in complete</title></head>
@@ -165,13 +200,34 @@ export class AuthController {
     <p>Sign-in complete. You can close this window.</p>
     <script>
       const message = ${message};
+      console.debug('[NutriApp OAuth] HTML bridge executed', {
+        requestId: ${JSON.stringify(requestId)},
+        openerAvailable: window.opener != null,
+        openerClosed: window.opener == null ? null : window.opener.closed,
+        targetOrigin: ${target},
+      });
       if (window.opener && !window.opener.closed) {
+        console.debug('[NutriApp OAuth] postMessage attempted', {
+          requestId: ${JSON.stringify(requestId)},
+          targetOrigin: ${target},
+        });
         window.opener.postMessage(message, ${target});
+        console.debug('[NutriApp OAuth] immediately before closing popup', {
+          requestId: ${JSON.stringify(requestId)},
+        });
         window.close();
+      } else {
+        console.warn('[NutriApp OAuth] postMessage skipped because window.opener is unavailable or closed.', {
+          requestId: ${JSON.stringify(requestId)},
+        });
       }
     </script>
   </body>
 </html>`);
+  }
+
+  private googleOAuthRequestId(request: FastifyRequest): string {
+    return (request as FastifyRequest & { googleOAuthRequestId?: string }).googleOAuthRequestId ?? 'unknown';
   }
 
 }
