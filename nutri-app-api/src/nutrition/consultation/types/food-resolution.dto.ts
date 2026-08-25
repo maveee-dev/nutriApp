@@ -7,6 +7,7 @@ import type {
 
 export class FoodResolutionCandidateDto {
   kind!: FoodEntityKind;
+  stableId?: string;
   foodId?: string;
   recipeId?: string;
   recipeVersionId?: string;
@@ -16,8 +17,14 @@ export class FoodResolutionCandidateDto {
   confidence!: FoodEntityConfidence;
 }
 
+export class FoodResolutionClarificationDto {
+  message!: string;
+  choices!: readonly FoodResolutionCandidateDto[];
+}
+
 export class FoodResolutionDto {
   status!: FoodEntityResolutionStatus;
   query!: string;
   candidates!: readonly FoodResolutionCandidateDto[];
+  clarification?: FoodResolutionClarificationDto;
 }

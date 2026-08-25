@@ -21,7 +21,7 @@ describe('FoodEntityResolver', () => {
     const foodsService = {
       findMany: jest.fn().mockResolvedValue({ items: [food('food-1', 'Chicken Adobo')], meta: {} }),
     };
-    const recipesService = { findMany: jest.fn() };
+    const recipesService = { findMany: jest.fn().mockResolvedValue([]) };
     const resolver = new FoodEntityResolver(foodsService as never, recipesService as never);
 
     await expect(resolver.resolve('user-1', 'Can I eat chicken adobo?')).resolves.toMatchObject({
@@ -44,6 +44,39 @@ describe('FoodEntityResolver', () => {
     });
   });
 
+  it('normalizes common Filipino food phrasing before using the existing search service', async () => {
+    const foodsService = {
+      findMany: jest.fn(async (input: { search?: string }) => ({
+        items: input.search === 'chicken adobo' ? [food('food-1', 'Chicken Adobo')] : [],
+        meta: {},
+      })),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
+
+    await expect(resolver.resolve('user-1', 'Pwede ba kainin ang adobong manok?')).resolves.toMatchObject({
+      status: 'resolved',
+      candidates: [{ foodId: 'food-1', stableId: 'food-1', matchType: 'display-exact', confidence: 'high' }],
+    });
+    expect(foodsService.findMany).toHaveBeenCalledWith(expect.objectContaining({ search: 'chicken adobo' }));
+  });
+
+  it('resolves a unique bounded typo correction without invoking recipes', async () => {
+    const foodsService = {
+      findMany: jest.fn(async (input: { search?: string }) => ({
+        items: input.search === 'banana' ? [food('food-1', 'Banana')] : [],
+        meta: {},
+      })),
+    };
+    const recipesService = { findMany: jest.fn().mockResolvedValue([]) };
+    const resolver = new FoodEntityResolver(foodsService as never, recipesService as never);
+
+    await expect(resolver.resolve('user-1', 'Can I eat bananna?')).resolves.toMatchObject({
+      status: 'resolved',
+      candidates: [{ foodId: 'food-1', matchType: 'fuzzy', confidence: 'high' }],
+    });
+    expect(recipesService.findMany).not.toHaveBeenCalled();
+  });
+
   it('returns ambiguity when multiple equally confident foods match', async () => {
     const foodsService = {
       findMany: jest.fn().mockResolvedValue({
@@ -53,13 +86,18 @@ describe('FoodEntityResolver', () => {
     };
     const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
 
-    await expect(resolver.resolve('user-1', 'Can I eat egg?')).resolves.toMatchObject({
+    const result = await resolver.resolve('user-1', 'Can I eat egg?');
+    expect(result).toMatchObject({
       status: 'ambiguous',
       candidates: expect.arrayContaining([
         expect.objectContaining({ foodId: 'egg-1' }),
         expect.objectContaining({ foodId: 'egg-2' }),
       ]),
     });
+    expect(result.clarification?.choices).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stableId: 'egg-1', kind: 'food' }),
+      expect.objectContaining({ stableId: 'egg-2', kind: 'food' }),
+    ]));
   });
 
   it('keeps both exact comparison entities instead of resolving the first one', async () => {

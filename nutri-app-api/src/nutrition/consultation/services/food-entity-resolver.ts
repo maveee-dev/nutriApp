@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { FoodsService } from '../../foods/services/foods.service.js';
+import { FoodQueryNormalizationService } from '../../foods/services/food-query-normalization.service.js';
 import { normalizeFoodSearchText } from '../../foods/services/food-presentation.service.js';
 import { RecipesService } from '../../recipes/services/recipes.service.js';
 import type { FoodSummarySource } from '../../foods/sources/food-summary.source.js';
-import type { RecipeSource } from '../../recipes/types/recipe.source.js';
 import type {
   FoodEntityCandidate,
   FoodEntityConfidence,
@@ -11,19 +11,8 @@ import type {
   FoodEntityResolution,
 } from '../types/food-entity-resolution.type.js';
 
-const MAX_SEARCH_PHRASES = 6;
 const MAX_FOOD_RESULTS_PER_PHRASE = 10;
 const MAX_CANDIDATES = 5;
-
-const CONVERSATIONAL_WORDS = new Set([
-  'a', 'an', 'and', 'are', 'about', 'can', 'do', 'does', 'for', 'good',
-  'healthy', 'high', 'i', 'in', 'is', 'it', 'me', 'my', 'of', 'okay', 'ok',
-  'safe', 'tell', 'the', 'this', 'to', 'would', 'you', 'eat', 'eating',
-  'increase', 'decrease', 'raise', 'lower', 'sugar', 'carbs', 'carbohydrates',
-  'protein', 'healthy', 'food', 'foods', 'meal', 'meals', 'please', 'what',
-  'which', 'between', 'compare', 'versus', 'vs', 'should', 'be', 'for',
-  'someone', 'with', 'kidney', 'disease', 'diabetes', 'dialysis', 'ckd',
-]);
 
 interface RankedCandidate {
   readonly candidate: FoodEntityCandidate;
@@ -36,10 +25,11 @@ export class FoodEntityResolver {
   constructor(
     private readonly foodsService: FoodsService,
     private readonly recipesService: RecipesService,
+    private readonly queryNormalizationService: FoodQueryNormalizationService = new FoodQueryNormalizationService(),
   ) {}
 
   async resolve(userId: string, question: string): Promise<FoodEntityResolution> {
-    const phrases = extractCandidatePhrases(question);
+    const phrases = this.queryNormalizationService.extractCandidatePhrases(question);
     if (phrases.length === 0) {
       return { status: 'not-found', query: question, candidates: [] };
     }
@@ -65,12 +55,44 @@ export class FoodEntityResolver {
       status,
       query: question,
       candidates: allCandidates,
+      ...(status === 'ambiguous' ? {
+        clarification: {
+          message: 'Please choose the food or approved recipe you mean.',
+          choices: (highConfidence.length > 1 ? highConfidence : allCandidates).slice(0, MAX_CANDIDATES),
+        },
+      } : {}),
     };
   }
 
   private async findFoodCandidates(
     phrases: readonly string[],
     collectAllConfidentMatches = false,
+  ): Promise<FoodEntityCandidate[]> {
+    const ranked = await this.searchPhrases(phrases, collectAllConfidentMatches, false);
+    if (ranked.length > 0) return ranked;
+
+    // Fuzzy matching is a bounded fallback only after the existing exact,
+    // alias, and prefix search found no candidate. This keeps normal search
+    // ranking authoritative and prevents typo correction from broadening a
+    // confident query into an unrelated result set.
+    const fuzzyPhrases = phrases.flatMap((phrase) =>
+      this.queryNormalizationService.typoVariants(phrase),
+    );
+    if (fuzzyPhrases.length === 0) return [];
+
+    return this.searchPhrases(
+      fuzzyPhrases,
+      collectAllConfidentMatches,
+      true,
+      phrases,
+    );
+  }
+
+  private async searchPhrases(
+    phrases: readonly string[],
+    collectAllConfidentMatches: boolean,
+    fuzzy: boolean,
+    originalPhrases: readonly string[] = phrases,
   ): Promise<FoodEntityCandidate[]> {
     const ranked: RankedCandidate[] = [];
     const seen = new Set<string>();
@@ -84,12 +106,16 @@ export class FoodEntityResolver {
 
       result.items.forEach((food, resultIndex) => {
         if (seen.has(food.id)) return;
-        const match = classifyFoodMatch(food, phrase);
+        const comparisonPhrases = fuzzy ? originalPhrases : [phrase];
+        const match = comparisonPhrases
+          .map((comparisonPhrase) => classifyFoodMatch(food, comparisonPhrase, fuzzy))
+          .find((candidateMatch) => candidateMatch != null);
         if (match == null) return;
         seen.add(food.id);
         ranked.push({
           candidate: {
             kind: 'food',
+            stableId: food.id,
             foodId: food.id,
             displayName: food.displayName ?? food.name,
             variantLabel: food.variantLabel ?? null,
@@ -124,6 +150,7 @@ export class FoodEntityResolver {
         if (!normalizedPhrases.has(normalizeFoodSearchText(version.name))) continue;
         candidates.push({
           kind: 'approved-recipe',
+          stableId: version.id,
           recipeId: recipe.id,
           recipeVersionId: version.id,
           displayName: version.name,
@@ -139,37 +166,13 @@ export class FoodEntityResolver {
 }
 
 function isComparisonQuestion(question: string): boolean {
-  return /\b(?:between|compare|versus|vs)\b/i.test(question);
-}
-
-function extractCandidatePhrases(question: string): string[] {
-  const normalized = normalizeFoodSearchText(question);
-  const tokens = normalized
-    .split(' ')
-    .filter((token) => token.length > 1 && !CONVERSATIONAL_WORDS.has(token));
-
-  if (tokens.length === 0) return [];
-
-  const phrases: string[] = [];
-  const add = (value: string) => {
-    const phrase = value.trim();
-    if (phrase.length > 1 && !phrases.includes(phrase)) phrases.push(phrase);
-  };
-
-  add(tokens.join(' '));
-  for (let length = Math.min(tokens.length - 1, 3); length >= 1; length -= 1) {
-    for (let start = 0; start + length <= tokens.length; start += 1) {
-      add(tokens.slice(start, start + length).join(' '));
-      if (phrases.length >= MAX_SEARCH_PHRASES) return phrases;
-    }
-  }
-
-  return phrases.slice(0, MAX_SEARCH_PHRASES);
+  return /\b(?:between|compare|versus|vs|pagitan)\b/i.test(question);
 }
 
 function classifyFoodMatch(
   food: FoodSummarySource,
   phrase: string,
+  allowFuzzy = false,
 ): { matchType: FoodEntityMatchType; confidence: FoodEntityConfidence } | null {
   const query = normalizeFoodSearchText(phrase);
   const displayName = normalizeFoodSearchText(food.displayName ?? food.name);
@@ -182,5 +185,32 @@ function classifyFoodMatch(
   if (displayName.startsWith(`${query} `)) return { matchType: 'display-prefix', confidence: 'medium' };
   if (aliases.some((alias) => alias.startsWith(`${query} `))) return { matchType: 'alias-prefix', confidence: 'medium' };
   if (canonicalName.startsWith(`${query} `)) return { matchType: 'canonical-prefix', confidence: 'medium' };
-  return null;
+
+  if (!allowFuzzy) return null;
+  const distance = Math.min(
+    editDistance(query, displayName),
+    editDistance(query, canonicalName),
+    ...aliases.map((alias) => editDistance(query, alias)),
+  );
+  return distance <= 1
+    ? { matchType: 'fuzzy', confidence: 'high' }
+    : null;
+}
+
+function editDistance(left: string, right: string): number {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    let diagonal = previous[0]!;
+    previous[0] = leftIndex;
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const above = previous[rightIndex]!;
+      previous[rightIndex] = left[leftIndex - 1] === right[rightIndex - 1]
+        ? diagonal
+        : Math.min(diagonal, previous[rightIndex - 1]!, above) + 1;
+      diagonal = above;
+    }
+  }
+
+  return previous[right.length]!;
 }

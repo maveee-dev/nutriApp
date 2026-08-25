@@ -31,6 +31,15 @@ describe('ConsultationIntentRouter', () => {
     });
   });
 
+  it.each([
+    ['Ano ang magandang pagkain para sa akin?', 'recommendation'],
+    ['Anong pagkain ang dapat kong kainin?', 'recommendation'],
+    ['Pwede ba kainin ang adobong manok?', 'food'],
+    ['Okay ba ang kanin?', 'food'],
+  ] as const)('routes natural Taglish phrasing "%s" to %s', (question, lane) => {
+    expect(router.route(question)).toMatchObject({ lane });
+  });
+
   it('applies creator precedence before unrelated or education rules', () => {
     expect(router.route('Who is your developer?').lane).toBe('creator');
     expect(router.route('Who created you for nutrition?').lane).toBe('creator');

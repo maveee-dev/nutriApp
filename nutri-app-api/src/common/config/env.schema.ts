@@ -17,7 +17,7 @@ export const envSchema = z.object({
   GOOGLE_CALLBACK_URL: z.string().url(),
   AUTH_FRONTEND_URL: z.string().url().optional(),
   GEMINI_API_KEY: z.string().min(1),
-  GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
+  GEMINI_MODEL: z.string().min(1).default('gemini-3.6-flash'),
 
   CORS_ORIGIN: z.string().optional(),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),

@@ -12,12 +12,15 @@ export type FoodEntityMatchType =
   | 'display-prefix'
   | 'alias-prefix'
   | 'canonical-prefix'
+  | 'fuzzy'
   | 'recipe-exact';
 
 export type FoodEntityConfidence = 'high' | 'medium';
 
 export interface FoodEntityCandidate {
   readonly kind: FoodEntityKind;
+  /** Stable identifier for the selected entity (food ID or recipe version ID). */
+  readonly stableId?: string;
   readonly foodId?: string;
   readonly recipeId?: string;
   readonly recipeVersionId?: string;
@@ -27,8 +30,14 @@ export interface FoodEntityCandidate {
   readonly confidence: FoodEntityConfidence;
 }
 
+export interface FoodEntityClarification {
+  readonly message: string;
+  readonly choices: readonly FoodEntityCandidate[];
+}
+
 export interface FoodEntityResolution {
   readonly status: FoodEntityResolutionStatus;
   readonly query: string;
   readonly candidates: readonly FoodEntityCandidate[];
+  readonly clarification?: FoodEntityClarification;
 }

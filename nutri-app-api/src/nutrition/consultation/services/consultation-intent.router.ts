@@ -105,11 +105,11 @@ function isUnrelatedRequest(question: string, recentContext: string): boolean {
 }
 
 function isNutritionQuestion(question: string): boolean {
-  return /\b(?:nutrition|nutrient|food|meal|diet|eat|eating|protein|carbohydrates?|carbs?|fat|sodium|potassium|phosphorus|cholesterol|calories?|fiber|vitamins?|minerals?|sugar|serving|portion|recipe|cook|cooking|healthy|healthier|lab|laboratory|egfr|creatinine|glucose|diabetes|kidney|renal|dialysis|hypertension|blood pressure|recommendation|recommend|adherence|progress|goal|avoid|today|improve|explain|why|should)\b/.test(question);
+  return /\b(?:nutrition|nutrient|food|foods|meal|meals|diet|eat|eating|protein|carbohydrates?|carbs?|fat|sodium|potassium|phosphorus|cholesterol|calories?|fiber|vitamins?|minerals?|sugar|serving|portion|recipe|cook|cooking|healthy|healthier|lab|laboratory|egfr|creatinine|glucose|diabetes|kidney|renal|dialysis|hypertension|blood pressure|recommendation|recommend|adherence|progress|goal|avoid|today|improve|explain|why|should|pagkain|ulam|kainin|kumain|nutrisyon|masustansya|malusog|bakit|mahalaga|pwede|puwede|maaari|itlog|manok|baboy|baka|isda|kanin|gatas|hipon)\b/.test(question);
 }
 
 function isFoodQuestion(question: string): boolean {
-  return /\b(?:can i eat|is .* (?:good|healthy|okay|ok|safe)|tell me about|food|foods|eat|eating|ingredient|recipe|between|compare|versus|vs)\b/.test(question);
+  return /\b(?:can i eat|is .* (?:good|healthy|okay|ok|safe)|tell me about|food|foods|eat|eating|ingredient|recipe|between|compare|versus|vs|pwede\s+(?:ba|bang)|puwede\s+(?:ba|bang)|maaari\s+(?:ba|bang)|(?:okay|ok|safe|mabuti|masama)\s+(?:ba|bang)|kainin|pagkain|ulam|ano ang)\b/.test(question);
 }
 
 function isLaboratoryQuestion(question: string): boolean {
@@ -121,19 +121,23 @@ function isMealProgressQuestion(question: string): boolean {
 }
 
 function isRecommendationQuestion(question: string): boolean {
-  const explicitRecommendation = /\b(?:recommend|recommendation|what should i|what can i|what do i choose|next meal|avoid|guidance|suggest)\b/;
+  const explicitRecommendation = /\b(?:recommend|recommends?|recommendation|recomend(?:ation)?|reco|what should i|what can i|what do i choose|next meal|avoid|guidance|suggest(?:ion)?|ano ang dapat|ano ang pwede|ano ang maaari)\b/;
   const broadFoodRequest = /\b(?:healthy|good|best|great|recommended|suitable|appropriate)\s+(?:food|foods|meals?)\b/;
   const foodGoalRequest = /\b(?:food|foods|meals?)\s+(?:i|we)\s+(?:should|can|could|need to|ought to)\s+(?:eat|choose|have|include)\b/;
   const foodForUserRequest = /\b(?:food|foods|meals?)\s+for\s+(?:me|my)\b/;
   const foodChoiceRequest = /\bwhat\s+(?:food|foods|can i eat|should i eat|could i eat)\b/;
   const foodToEatRequest = /\b(?:food|foods|meals?)\s+to\s+(?:eat|choose|have|include)\b/;
+  const taglishFoodRequest = /\b(?:ano|anong)\s+(?:ang\s+)?(?:mga\s+)?(?:magandang|mabuting|healthy|masustansyang|pwede|maaari)\s+(?:pagkain|ulam)\b/;
+  const taglishGoalRequest = /\b(?:pagkain|ulam)\s+(?:na\s+|ang\s+)?(?:dapat|pwede|maaari)\b/;
 
   return explicitRecommendation.test(question)
     || broadFoodRequest.test(question)
     || foodGoalRequest.test(question)
     || foodForUserRequest.test(question)
     || foodChoiceRequest.test(question)
-    || foodToEatRequest.test(question);
+    || foodToEatRequest.test(question)
+    || taglishFoodRequest.test(question)
+    || taglishGoalRequest.test(question);
 }
 
 function isConversationalFollowUp(question: string): boolean {

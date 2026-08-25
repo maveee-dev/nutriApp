@@ -43,4 +43,22 @@ describe('GeminiProvider', () => {
       conversation: [],
     })).rejects.toThrow('Gemini returned no consultation text.');
   });
+
+  it('uses the supported default model when no override is configured', async () => {
+    const generateContent = jest.fn().mockResolvedValue({ text: 'Use the supplied guidance.' });
+    const client = { models: { generateContent } };
+    const provider = new GeminiProvider(client as never, new ConfigService());
+
+    await provider.generateConsultation({
+      userConditions: [],
+      labSummary: [],
+      foodEvaluation: null,
+      dailySummary: { date: '2026-08-20', deferredPolicies: [], adherence: [], replayLimitations: [] },
+      recommendations: [],
+      userQuestion: 'Explain this food.',
+      conversation: [],
+    });
+
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.6-flash' }));
+  });
 });

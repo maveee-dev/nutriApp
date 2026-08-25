@@ -111,7 +111,16 @@ export class NutritionConsultationService {
       return `${lead}${contextExplanation} ${selected.slice(0, 2).map((item) => item.message).join(' ')}`;
     }
     if (foodResolution?.status === 'ambiguous') {
-      return 'I found several possible foods. Please choose the food you mean so NutriApp can continue with the correct evidence.';
+      const choices = foodResolution.clarification?.choices ?? foodResolution.candidates;
+      const choiceText = choices
+        .slice(0, 5)
+        .map((candidate, index) => {
+          const variant = candidate.variantLabel == null ? '' : ` — ${candidate.variantLabel}`;
+          const type = candidate.kind === 'approved-recipe' ? 'approved recipe' : 'food';
+          return `${index + 1}. ${candidate.displayName}${variant} (${type})`;
+        })
+        .join('\n');
+      return `I found several possible foods. Which one did you mean?\n${choiceText}`;
     }
     if (foodResolution?.status === 'not-found') {
       return 'I could not find a confident match in the food catalog. Try a more specific food name or spelling.';

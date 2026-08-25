@@ -16,7 +16,7 @@ export class GeminiProvider implements AiProvider {
   ) {}
 
   async generateConsultation(request: ConsultationPrompt): Promise<AiResponse> {
-    const model = this.configService.get<string>('geminiModel') ?? 'gemini-2.5-flash';
+    const model = this.configService.get<string>('geminiModel') ?? 'gemini-3.6-flash';
     const response = await this.client.models.generateContent({
       model,
       contents: buildConsultationPrompt(request),
