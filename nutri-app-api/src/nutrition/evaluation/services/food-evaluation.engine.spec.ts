@@ -49,6 +49,12 @@ describe('FoodEvaluationEngine', () => {
       measuredValue: '3000',
       targetValue: '2300',
     });
+    expect(result.contributions).toContainEqual(expect.objectContaining({
+      nutrient: 'sodium',
+      unit: 'mg',
+      amount: '3000',
+      targetValue: '2300',
+    }));
     expect(result.deferredPolicies).toEqual(deferred);
   });
 
@@ -190,6 +196,39 @@ describe('FoodEvaluationEngine', () => {
       currentDailyValue: null,
       explanation: 'This portion provides 358 mg of potassium. No applicable potassium policy is currently available.',
     });
+  });
+
+  it('keeps an informational potassium deferral outside compatibility scoring', () => {
+    const deferred = [{
+      policyId: 'ckd-potassium-v1',
+      reason: 'missing-individualized-potassium-target',
+      explanation: 'Potassium was not included in this compatibility score because no individualized potassium limit is currently available.',
+    }];
+    const nutrients = [
+      { name: 'Sodium', unit: 'mg', amountPer100Grams: '100' },
+      { name: 'Protein', unit: 'g', amountPer100Grams: '20' },
+      { name: 'Potassium, K', unit: 'mg', amountPer100Grams: '358' },
+    ];
+    const withoutDeferral = calculation();
+    const withDeferral = calculation('60', deferred);
+    const baseline = engine.evaluate({
+      nutrients,
+      portionGrams: '200',
+      targets: withoutDeferral.targets,
+      targetCalculation: withoutDeferral,
+    });
+    const result = engine.evaluate({
+      nutrients,
+      portionGrams: '200',
+      targets: withDeferral.targets,
+      targetCalculation: withDeferral,
+    });
+
+    expect(result.score).toBe(baseline.score);
+    expect(result.coverage).toBe(baseline.coverage);
+    expect(result.reasons).toEqual(baseline.reasons);
+    expect(result.contributions).toEqual(baseline.contributions);
+    expect(result.deferredPolicies).toEqual(deferred);
   });
 
   it('adds potassium to compatibility only when a policy supplies a target', () => {

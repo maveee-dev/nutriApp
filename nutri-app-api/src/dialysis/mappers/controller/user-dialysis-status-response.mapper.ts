@@ -6,6 +6,8 @@ export class UserDialysisStatusResponseMapper {
     return {
       status: source.status,
       modality: source.modality,
+      frequency: source.frequency,
+      schedule: source.schedule,
       effectiveAt: source.effectiveAt,
       reportedAt: source.reportedAt,
       updatedAt: source.updatedAt,

@@ -91,6 +91,26 @@ export class ConditionsRepository {
     }
   }
 
+  async replaceForUser(userId: string, conditionIds: readonly string[]): Promise<UserConditionSource[]> {
+    const uniqueConditionIds = [...new Set(conditionIds)];
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.userCondition.deleteMany({ where: { userId } });
+        if (uniqueConditionIds.length > 0) {
+          await tx.userCondition.createMany({
+            data: uniqueConditionIds.map((conditionId) => ({ userId, conditionId })),
+          });
+        }
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConditionNotFoundError();
+      }
+      throw error;
+    }
+    return this.findUserConditions(userId);
+  }
+
   private toWhere(options: FindConditionsOptions): Prisma.ConditionWhereInput {
     if (!options.search) return {};
     return { OR: [

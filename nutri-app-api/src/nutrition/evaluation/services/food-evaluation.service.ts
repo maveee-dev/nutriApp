@@ -6,6 +6,8 @@ import { FoodEvaluationEngine } from './food-evaluation.engine.js';
 import { FoodEvaluationSource, FoodEvaluationWithContextSource } from '../types/food-evaluation.type.js';
 import { Decimal } from 'decimal.js';
 import { NutritionEvaluationContext } from '../../analysis/types/nutrition-evaluation-context.type.js';
+import { NutritionInsightService } from '../../insights/nutrition-insight.service.js';
+import type { FoodEvaluationInput, FoodEvaluationNutrientInput } from '../types/food-evaluation.type.js';
 
 @Injectable()
 export class FoodEvaluationService {
@@ -13,6 +15,7 @@ export class FoodEvaluationService {
     private readonly foodsRepository: FoodsRepository,
     private readonly policyService: NutritionPolicyService,
     private readonly engine: FoodEvaluationEngine,
+    private readonly nutritionInsightService: NutritionInsightService = new NutritionInsightService(),
   ) {}
 
   async evaluate(userId: string, foodId: string, servingId: string, quantity: string): Promise<FoodEvaluationSource> {
@@ -31,6 +34,7 @@ export class FoodEvaluationService {
     const evaluation = this.engine.evaluate({
       portionGrams: new Decimal(serving.grams).mul(quantity).toString(),
       nutrients: food.nutrients.map((item) => ({
+        sourceId: item.nutrient.sourceId,
         name: item.nutrient.name,
         unit: item.nutrient.unit,
         amountPer100Grams: item.amount,
@@ -38,7 +42,16 @@ export class FoodEvaluationService {
       targets: targetCalculation.targets,
       targetCalculation,
     });
-    return { evaluation, targetCalculation };
+    return {
+      evaluation: {
+        ...evaluation,
+        nutritionInsights: this.nutritionInsightService.generate({
+          evaluation,
+          conditionCodes: context?.conditionCodes,
+        }),
+      },
+      targetCalculation,
+    };
   }
 
   /**
@@ -56,6 +69,7 @@ export class FoodEvaluationService {
     const evaluation = this.engine.evaluateWithKernel({
       portionGrams: new Decimal(serving.grams).mul(quantity).toString(),
       nutrients: food.nutrients.map((item) => ({
+        sourceId: item.nutrient.sourceId,
         name: item.nutrient.name,
         unit: item.nutrient.unit,
         amountPer100Grams: item.amount,
@@ -63,7 +77,16 @@ export class FoodEvaluationService {
       targets: targetCalculation.targets,
       targetCalculation,
     });
-    return { evaluation, targetCalculation };
+    return {
+      evaluation: {
+        ...evaluation,
+        nutritionInsights: this.nutritionInsightService.generate({
+          evaluation,
+          conditionCodes: context?.conditionCodes,
+        }),
+      },
+      targetCalculation,
+    };
   }
 
   loadEvaluationContext(userId: string): Promise<NutritionEvaluationContext> {
@@ -72,5 +95,20 @@ export class FoodEvaluationService {
 
   getPolicySetFingerprint(): string | null {
     return this.policyService.getPolicySetFingerprint();
+  }
+
+  /**
+   * Evaluates a composed, already-resolved nutrition profile through the same
+   * engine used by canonical Food records. Recipe and future composite
+   * consumers use this additive seam without fabricating Food or Serving IDs.
+   */
+  evaluateResolvedComposition(
+    input: Pick<FoodEvaluationInput, 'portionGrams' | 'targets' | 'targetCalculation'> & { nutrients: readonly FoodEvaluationNutrientInput[] },
+  ): FoodEvaluationSource {
+    const evaluation = this.engine.evaluateWithKernel(input);
+    return {
+      ...evaluation,
+      nutritionInsights: this.nutritionInsightService.generate({ evaluation }),
+    };
   }
 }

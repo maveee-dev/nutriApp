@@ -14,6 +14,7 @@ import { NutritionModule } from '../nutrition/nutrition.module.js';
     MealEvaluationSnapshotRepository,
     MealEvaluationSnapshotService,
   ],
-  controllers: [MealsController]
+  controllers: [MealsController],
+  exports: [MealEvaluationSnapshotRepository, MealEvaluationSnapshotService],
 })
 export class MealsModule {}

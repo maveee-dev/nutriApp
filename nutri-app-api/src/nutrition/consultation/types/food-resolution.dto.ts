@@ -13,6 +13,8 @@ export class FoodResolutionCandidateDto {
   recipeVersionId?: string;
   displayName!: string;
   variantLabel?: string | null;
+  recipeYieldServings?: string;
+  recipeIngredientNames?: readonly string[];
   matchType!: FoodEntityMatchType;
   confidence!: FoodEntityConfidence;
 }

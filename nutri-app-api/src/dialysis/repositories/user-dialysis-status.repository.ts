@@ -18,18 +18,29 @@ export class UserDialysisStatusRepository {
     userId: string,
     input: UpdateDialysisStatusInput,
   ): Promise<UserDialysisStatusSource> {
+    const reportedAt = new Date();
     const status = await this.prisma.userDialysisStatus.upsert({
       where: { userId },
       create: {
         userId,
         status: input.status,
         modality: input.modality ?? DialysisModality.UNKNOWN,
+        frequency: input.frequency ?? null,
+        schedule: input.schedule ?? null,
         effectiveAt: input.effectiveAt,
+        reportedAt,
       },
       update: {
         status: input.status,
-        modality: input.modality ?? DialysisModality.UNKNOWN,
         effectiveAt: input.effectiveAt,
+        // An omitted modality means "leave the reported modality unchanged".
+        // UNKNOWN remains available when callers explicitly submit it.
+        ...(input.modality == null ? {} : { modality: input.modality }),
+        ...(input.frequency === undefined ? {} : { frequency: input.frequency }),
+        ...(input.schedule === undefined ? {} : { schedule: input.schedule }),
+        // The endpoint is a new user report, so its freshness must advance
+        // even when the status or modality value is unchanged.
+        reportedAt,
       },
     });
     return UserDialysisStatusRepositoryMapper.toSource(status);

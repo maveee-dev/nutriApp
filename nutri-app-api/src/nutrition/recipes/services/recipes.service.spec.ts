@@ -1,22 +1,27 @@
 import { jest } from '@jest/globals';
-import { RecipeNotFoundError } from '../errors/recipe-not-found.error.js';
+import { BadRequestException } from '@nestjs/common';
 import { RecipesService } from './recipes.service.js';
 
 describe('RecipesService', () => {
-  it('returns only the recipes supplied by the visibility-aware repository', async () => {
-    const recipes = [{ id: 'recipe-1', ownerId: 'user-1', visibility: 'PRIVATE', versions: [] }];
-    const repository = { findManyVisibleToUser: jest.fn().mockResolvedValue(recipes) };
-    const service = new RecipesService(repository as never);
+  it('validates a recipe and delegates persistence without copying nutrients', async () => {
+    const createOwned = jest.fn().mockResolvedValue({ id: 'recipe-1' });
+    const service = new RecipesService({ createOwned } as never);
 
-    await expect(service.findMany('user-1')).resolves.toEqual(recipes);
-    expect(repository.findManyVisibleToUser).toHaveBeenCalledWith('user-1');
+    await service.create('user-1', {
+      name: 'Chicken Bowl',
+      servings: '2',
+      ingredients: [{ foodId: 'food-1', servingId: 'serving-1', quantity: '1', unit: 'SERVING', role: 'INGREDIENT' }],
+    });
+
+    expect(createOwned).toHaveBeenCalledWith('user-1', expect.objectContaining({
+      name: 'Chicken Bowl', servings: '2', ingredients: [expect.objectContaining({ foodId: 'food-1', servingId: 'serving-1' })],
+    }));
   });
 
-  it('does not expose a recipe that the repository cannot authorize', async () => {
-    const repository = { findByIdVisibleToUser: jest.fn().mockResolvedValue(null) };
-    const service = new RecipesService(repository as never);
+  it('rejects empty recipes and non-positive quantities', async () => {
+    const service = new RecipesService({} as never);
 
-    await expect(service.findById('user-2', 'recipe-private')).rejects.toBeInstanceOf(RecipeNotFoundError);
-    expect(repository.findByIdVisibleToUser).toHaveBeenCalledWith('user-2', 'recipe-private');
+    await expect(service.create('user-1', { name: 'Empty', servings: '1', ingredients: [] })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create('user-1', { name: 'Invalid', servings: '1', ingredients: [{ foodId: 'food-1', quantity: '0', unit: 'GRAM', role: 'INGREDIENT' }] })).rejects.toBeInstanceOf(BadRequestException);
   });
 });

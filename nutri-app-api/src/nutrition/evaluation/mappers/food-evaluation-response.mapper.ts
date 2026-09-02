@@ -10,6 +10,12 @@ export class FoodEvaluationResponseMapper {
       reasons: source.reasons.map((reason) => ({ ...reason })),
       contributions: source.contributions.map((contribution) => ({ ...contribution })),
       deferredPolicies: source.deferredPolicies.map((policy) => ({ ...policy })),
+      ...(source.nutritionInsights == null ? {} : {
+        nutritionInsights: source.nutritionInsights.map((insight) => ({
+          ...insight,
+          evidence: { ...insight.evidence },
+        })),
+      }),
     };
   }
 }

@@ -9,7 +9,15 @@ export class RecipeEvaluationResponseMapper {
       recipeVersionId: source.recipeVersionId,
       recipeVersion: source.recipeVersion,
       portionGrams: source.portionGrams,
-      evaluation: { ...source.evaluation },
+      evaluation: {
+        ...source.evaluation,
+        ...(source.evaluation.nutritionInsights == null ? {} : {
+          nutritionInsights: source.evaluation.nutritionInsights.map((insight) => ({
+            ...insight,
+            evidence: { ...insight.evidence },
+          })),
+        }),
+      },
       targetCalculation: {
         targets: source.targetCalculation.targets,
         targetProvenance: source.targetCalculation.targetProvenance,

@@ -112,21 +112,25 @@ export class RecommendationService {
     const snapshotIds = [...new Set(dailySummaries.flatMap(({ snapshotIds: ids }) => ids ?? []))];
     const mealAssessments = dailySummaries.flatMap(({ mealAssessments: assessments }) => assessments ?? []);
     const dailyAdherence = dailySummaries.length === 1 ? dailySummaries[0]?.dailyAdherence : undefined;
+    const dailyAdherenceByPolicy = dailySummaries.length === 1 ? dailySummaries[0]?.dailyAdherenceByPolicy : undefined;
     const evaluationDays: readonly RecommendationEvaluationDay[] = dailySummaries.map((summary) => ({
       date: summary.date,
       ...(summary.mealAssessments == null ? {} : { mealAssessments: summary.mealAssessments }),
       ...(summary.dailyAdherence == null ? {} : { dailyAdherence: summary.dailyAdherence }),
+      ...(summary.dailyAdherenceByPolicy == null ? {} : { dailyAdherenceByPolicy: summary.dailyAdherenceByPolicy }),
     }));
     const deferredPolicies = uniqueByJson(dailySummaries.flatMap(({ deferredPolicies: policies }) => policies));
     const targetProvenance = uniqueByJson(dailySummaries.flatMap(({ targetProvenance: provenance }) => provenance ?? []));
     const evaluatorVersions = [...new Set([
       ...mealAssessments.map(({ evaluatorVersion }) => evaluatorVersion).filter((value): value is string => value != null),
       ...(dailyAdherence?.evaluatorVersion == null ? [] : [dailyAdherence.evaluatorVersion]),
+      ...((dailyAdherenceByPolicy ?? []).flatMap(({ evaluatorVersion }) => evaluatorVersion == null ? [] : [evaluatorVersion])),
     ])].sort();
     const policySetFingerprints = [...new Set([
       ...dailySummaries.flatMap(({ policySetFingerprints: fingerprints }) => fingerprints ?? []),
       ...mealAssessments.map(({ policySetFingerprint }) => policySetFingerprint).filter((value): value is string => value != null),
       ...(dailyAdherence?.policySetFingerprint == null ? [] : [dailyAdherence.policySetFingerprint]),
+      ...((dailyAdherenceByPolicy ?? []).flatMap(({ policySetFingerprint }) => policySetFingerprint == null ? [] : [policySetFingerprint])),
     ])].sort();
     const snapshotFingerprints: string[] = [];
     const replayLimitations = modes.length > 1 ? ['mixed-evaluation-modes'] : [];
@@ -138,10 +142,11 @@ export class RecommendationService {
     return {
       ...(modes.length === 1 ? { evaluationMode: modes[0] } : {}),
       ...(dailyAdherence == null ? {} : { dailyAdherence }),
+      ...(dailyAdherenceByPolicy == null || dailyAdherenceByPolicy.length === 0 ? {} : { dailyAdherenceByPolicy }),
       ...(targetProvenance.length === 0 ? {} : { targetProvenance }),
       ...(mealAssessments.length === 0 ? {} : { mealAssessments }),
       ...(evaluationDays.length === 0 ? {} : { mealAssessmentsByDate: evaluationDays }),
-      ...(dailySummaries.some(({ dailyAdherence: adherence }) => adherence != null) ? { dailyAdherenceByDate: evaluationDays } : {}),
+      ...(dailySummaries.some(({ dailyAdherence: adherence, dailyAdherenceByPolicy: byPolicy }) => adherence != null || (byPolicy != null && byPolicy.length > 0)) ? { dailyAdherenceByDate: evaluationDays } : {}),
       deferredPolicies,
       snapshotIds,
       evaluatorVersions: [...new Set([

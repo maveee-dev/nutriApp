@@ -9,9 +9,18 @@ import type {
   UpdateDialysisStatusRequest,
   LaboratoryResult,
   CreateLaboratoryResultRequest,
+  HealthProfile,
+  UpdateHealthProfileRequest,
+  NutritionTarget,
+  CreateNutritionTargetRequest,
+  UpdateNutritionTargetRequest,
 } from '../types/health.types';
 
 export const healthApi = {
+  getHealthProfile: (): Promise<HealthProfile> => apiClient.get('/health-profile'),
+
+  updateHealthProfile: (data: UpdateHealthProfileRequest): Promise<HealthProfile> => apiClient.patch('/health-profile', data),
+
   // Profile
   getMyProfile: (): Promise<UserProfile> => {
     return apiClient.get('/profile/me');
@@ -55,4 +64,12 @@ export const healthApi = {
   createLabResult: (data: CreateLaboratoryResultRequest): Promise<LaboratoryResult> => {
     return apiClient.post('/laboratory/results', data);
   },
+
+  getNutritionTargets: (): Promise<NutritionTarget[]> => apiClient.get('/nutrition-targets'),
+
+  getCurrentNutritionTargets: (): Promise<NutritionTarget[]> => apiClient.get('/nutrition-targets/current'),
+
+  createNutritionTarget: (data: CreateNutritionTargetRequest): Promise<NutritionTarget> => apiClient.post('/nutrition-targets', data),
+
+  updateNutritionTarget: (id: string, data: UpdateNutritionTargetRequest): Promise<NutritionTarget> => apiClient.patch(`/nutrition-targets/${id}`, data),
 };

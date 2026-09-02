@@ -4,6 +4,7 @@ import { TARGET_KEYS, candidate, output, simple } from './nutrition-target-regis
 import { requireEvidenceSlice } from '../types/nutrition-evidence-provider.type.js';
 import { DIABETES_EVIDENCE_KEY } from './nutrition-evidence.providers.js';
 import { DiabetesNutritionEvidence } from '../types/diabetes-nutrition-evidence.slice.js';
+import { NUTRITION_EVALUATION_RULE_DESCRIPTORS } from '../types/numeric-evaluation-rule-descriptors.js';
 
 export function createDiabetesTargetRegistrations(): readonly NutritionTargetPolicyRegistration[] {
   const diabetes = new DiabetesCarbohydrateTargetPolicy();
@@ -13,14 +14,6 @@ export function createDiabetesTargetRegistrations(): readonly NutritionTargetPol
     return output(result.provenance == null ? undefined : candidate(DIABETES_CARBOHYDRATE_TARGET_POLICY_ID, DIABETES_CARBOHYDRATE_TARGET_POLICY_VERSION, 'carbohydrateGrams', result.carbohydrateGrams!, TARGET_KEYS.carbohydrate, 20, 2, 90, result.provenance), result.deferredPolicy == null ? [] : [{ ...result.deferredPolicy, conflictKey: TARGET_KEYS.carbohydrate, precedence: 20 }]);
   }, {
     precedenceByConflictKey: { [TARGET_KEYS.carbohydrate]: 20 },
-    evaluationRule: {
-      family: 'numeric-constraint',
-      kind: 'lower-target',
-      roles: ['contribution', 'progress'],
-      scopes: ['food', 'meal', 'daily'],
-      measurementKey: 'carbohydrates',
-      unit: 'g',
-      weight: 25,
-    },
+    evaluationRule: NUTRITION_EVALUATION_RULE_DESCRIPTORS.carbohydrates,
   })];
 }

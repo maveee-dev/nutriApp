@@ -7,6 +7,7 @@ export function toRecipeSource(row: RecipeWithDetails, includeUnapprovedVersions
     id: row.id,
     ownerId: row.ownerId,
     visibility: row.visibility,
+    isFavorite: row.isFavorite,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     versions: row.versions.filter((version) => includeUnapprovedVersions || version.approvalStatus === 'APPROVED').map((version) => ({
@@ -15,6 +16,7 @@ export function toRecipeSource(row: RecipeWithDetails, includeUnapprovedVersions
       version: version.version,
       name: version.name,
       description: version.description,
+      preparationInstructions: version.preparationInstructions,
       cuisine: version.cuisine,
       mealTypes: version.mealTypes,
       yieldServings: version.yieldServings.toString(),

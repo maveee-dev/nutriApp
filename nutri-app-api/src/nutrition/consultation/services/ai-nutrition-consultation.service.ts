@@ -4,6 +4,7 @@ import { NUTRITION_CONSULTATION_AI_PROVIDER } from '../types/nutrition-consultat
 import type { NutritionConsultationConversationTurn, NutritionConsultationAiProvider } from '../types/nutrition-consultation-ai-provider.type.js';
 import { NutritionConsultationResponseDto } from '../dto/consultation-response.dto.js';
 import { ConsultationIntentRouter } from './consultation-intent.router.js';
+import type { ConsultationClarificationSelection } from '../types/consultation-clarification.type.js';
 
 const CREATOR_RESPONSE = 'I was created for NutriApp by Maverich Co., with the goal of providing evidence-based nutrition guidance.';
 const CALCULATION_RESPONSE = 'I can explain nutrition values that NutriApp has already calculated, but I can\'t calculate or estimate nutrient amounts or clinical scores. Please use a food or meal evaluation with the available serving information.';
@@ -20,9 +21,10 @@ export class AiNutritionConsultationService {
     private readonly router: ConsultationIntentRouter = new ConsultationIntentRouter(),
   ) {}
 
-  async consult(userId: string, question: string, requestedDate?: string, conversation: readonly NutritionConsultationConversationTurn[] = []): Promise<NutritionConsultationResponseDto> {
-    const route = this.router.route(question, conversation);
-    const deterministicResponse = await this.deterministicService.consult(userId, question, requestedDate);
+  async consult(userId: string, question: string, requestedDate?: string, conversation: readonly NutritionConsultationConversationTurn[] = [], clarificationSelection?: ConsultationClarificationSelection): Promise<NutritionConsultationResponseDto> {
+    const routedQuestion = clarificationSelection?.originalQuestion ?? question;
+    const route = this.router.route(routedQuestion, conversation);
+    const deterministicResponse = await this.deterministicService.consult(userId, routedQuestion, requestedDate, clarificationSelection);
 
     if (route.aiPolicy === 'never') {
       return this.withDeterministicRouteResponse(deterministicResponse, route.lane);
@@ -33,14 +35,14 @@ export class AiNutritionConsultationService {
     // matches remain fully deterministic.
     if (route.lane === 'food' && (
       deterministicResponse.foodResolution?.status !== 'resolved'
-      || deterministicResponse.foodEvaluation == null
+      || (deterministicResponse.foodEvaluation == null && deterministicResponse.recipeEvaluation == null)
     )) {
       return deterministicResponse;
     }
 
     try {
       const explanation = await this.provider.explain({ deterministicResponse, conversation });
-      if (explanation == null || explanation.refused || !this.isSafeExplanation(explanation.answer)) return deterministicResponse;
+      if (explanation == null || explanation.refused || !this.isSafeExplanation(explanation.answer, deterministicResponse)) return deterministicResponse;
       return {
         ...deterministicResponse,
         assistantMode: 'ai-assisted',
@@ -73,11 +75,21 @@ export class AiNutritionConsultationService {
     };
   }
 
-  private isSafeExplanation(answer: string): boolean {
+  private isSafeExplanation(answer: string, deterministicResponse: NutritionConsultationResponseDto): boolean {
     const normalized = answer.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim();
     if (normalized.length === 0 || normalized.length > 4_000) return false;
     // The provider explains approved decisions; it must not introduce
     // diagnosis, prescriptions, or medication dosing as new clinical output.
-    return !/\b(diagnos(?:e|is|ed)|prescribe|prescription|medication dose|change your medication)\b/i.test(normalized);
+    if (/\b(diagnos(?:e|is|ed)|prescribe|prescription|medication dose|change your medication)\b/i.test(normalized)) return false;
+
+    // A model explanation is supplementary text. Never allow it to introduce
+    // a compatibility score that differs from the deterministic projection
+    // shown in the same response (for example, 86/100 beside an authoritative
+    // recipe score of 84/100). Equal restatements remain valid.
+    const authoritativeScore = deterministicResponse.recipeEvaluation?.evaluation?.score
+      ?? deterministicResponse.foodEvaluation?.evaluation?.score;
+    if (authoritativeScore == null) return true;
+    return [...normalized.matchAll(/\b(\d{1,3})\s*\/\s*100\b/g)]
+      .every((match) => Number(match[1]) === authoritativeScore);
   }
 }

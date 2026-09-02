@@ -23,6 +23,7 @@ export interface RecipeVersionSource {
   readonly version: number;
   readonly name: string;
   readonly description: string | null;
+  readonly preparationInstructions?: string | null;
   readonly cuisine: string | null;
   readonly mealTypes: readonly string[];
   readonly yieldServings: string;
@@ -42,6 +43,7 @@ export interface RecipeSource {
   readonly id: string;
   readonly ownerId: string | null;
   readonly visibility: RecipeVisibility;
+  readonly isFavorite: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly versions: readonly RecipeVersionSource[];

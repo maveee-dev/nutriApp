@@ -43,4 +43,16 @@ describe('LaboratoryResultsService phosphorus evidence resolution', () => {
       failureReason: 'no-phosphorus-found',
     });
   });
+
+  it('keeps the newest invalid-row reason while continuing to an older valid result', async () => {
+    repository.findMany = jest.fn().mockResolvedValue([
+      result({ id: 'new-invalid', unit: 'g/dL', collectedAt: new Date('2026-08-20T00:00:00.000Z') }),
+      result({ id: 'older-valid', value: '4.2', collectedAt: new Date('2026-08-19T00:00:00.000Z') }),
+    ]);
+
+    await expect(service.findLatestPhosphorusEvidence('user-1')).resolves.toMatchObject({
+      finding: expect.objectContaining({ value: '4.2' }),
+      failureReason: null,
+    });
+  });
 });

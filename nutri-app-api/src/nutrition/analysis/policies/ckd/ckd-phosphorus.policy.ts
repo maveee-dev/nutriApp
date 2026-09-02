@@ -58,6 +58,9 @@ export class CkdPhosphorusPolicy {
     if (target.kind !== 'upper-limit') {
       return this.defer('unsupported-phosphorus-target-kind', 'The available individualized phosphorus evidence is not an approved upper limit.');
     }
+    if (target.targetValue == null) {
+      return this.defer('invalid-phosphorus-target-value', 'The individualized phosphorus limit must include a numeric value.');
+    }
     if (target.expiresAt != null && target.expiresAt <= asOf) {
       return this.defer('expired-individualized-phosphorus-target', 'The approved individualized phosphorus limit has expired and must be reviewed before CKD-specific guidance can continue.');
     }

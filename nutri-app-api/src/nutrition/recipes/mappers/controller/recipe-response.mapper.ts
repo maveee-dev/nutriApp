@@ -7,6 +7,7 @@ export class RecipeResponseMapper {
       id: source.id,
       ownerId: source.ownerId,
       visibility: source.visibility,
+      isFavorite: source.isFavorite,
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
       versions: source.versions.map((version) => ({
@@ -14,6 +15,7 @@ export class RecipeResponseMapper {
         version: version.version,
         name: version.name,
         description: version.description,
+        preparationInstructions: version.preparationInstructions ?? null,
         cuisine: version.cuisine,
         mealTypes: version.mealTypes,
         yieldServings: version.yieldServings,

@@ -25,7 +25,14 @@ export class UserDialysisStatusController {
   ): Promise<UserDialysisStatusResponseDto> {
     const status = await this.service.update(user.sub, {
       status: dto.status,
-      effectiveAt: dto.effectiveAt ? new Date(dto.effectiveAt) : undefined,
+      modality: dto.modality,
+      effectiveAt: dto.effectiveAt === undefined
+        ? undefined
+        : dto.effectiveAt === null
+          ? null
+          : new Date(dto.effectiveAt),
+      ...(dto.frequency === undefined ? {} : { frequency: dto.frequency }),
+      ...(dto.schedule === undefined ? {} : { schedule: dto.schedule }),
     });
     return UserDialysisStatusResponseMapper.toResponseDto(status);
   }

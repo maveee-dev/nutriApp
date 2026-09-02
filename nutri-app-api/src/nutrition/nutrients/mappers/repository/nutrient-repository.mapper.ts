@@ -6,6 +6,7 @@ export function toNutrientSource(
 ): NutrientSource {
   return {
     id: row.id,
+    sourceId: row.sourceId,
     name: row.name,
     unit: row.unit,
     description: row.description,

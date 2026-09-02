@@ -1,5 +1,8 @@
 import type { FoodSummarySource } from '../sources/food-summary.source.js';
-import { rankFoodSearchResults } from './food-search-ranker.js';
+import {
+  diversifyFoodSearchResults,
+  rankFoodSearchResults,
+} from './food-search-ranker.js';
 import { resolveFoodPresentation } from './food-presentation.service.js';
 
 const category = { id: 'category-1', name: 'Food', description: null };
@@ -93,6 +96,61 @@ describe('food search ranking', () => {
     );
 
     expect(ranked[0]?.id).toBe('chicken');
+  });
+
+  it('matches meaningful tokens anywhere in promoted food titles', () => {
+    const foods = [
+      food('white-rice', 'Rice, white, cooked', { displayName: 'White Rice' }),
+      food('brown-rice', 'Rice, brown, cooked', { displayName: 'Brown Rice' }),
+      food('whole-milk', 'Milk, whole', { displayName: 'Whole Milk' }),
+      food('cheddar', 'Cheese, cheddar', { displayName: 'Cheddar Cheese' }),
+      food('green-apple', 'Apples, green, raw', { displayName: 'Green Apple' }),
+      food('chicken-breast', 'Chicken, breast, cooked', { displayName: 'Chicken Breast' }),
+      food('mashed-potato', 'Potatoes, mashed', { displayName: 'Mashed Potatoes' }),
+      food('unrelated', 'Oatmeal, cooked', { displayName: 'Oatmeal' }),
+    ];
+
+    expect(new Set(rankFoodSearchResults(foods, 'rice').slice(0, 2).map(({ id }) => id))).toEqual(
+      new Set(['white-rice', 'brown-rice']),
+    );
+    expect(rankFoodSearchResults(foods, 'milk')[0]?.id).toBe('whole-milk');
+    expect(rankFoodSearchResults(foods, 'cheese')[0]?.id).toBe('cheddar');
+    expect(rankFoodSearchResults(foods, 'apple')[0]?.id).toBe('green-apple');
+    expect(rankFoodSearchResults(foods, 'breast')[0]?.id).toBe('chicken-breast');
+    expect(rankFoodSearchResults(foods, 'potato')[0]?.id).toBe('mashed-potato');
+  });
+
+  it('matches secondary identity words in aliases and variants', () => {
+    const foods = [
+      food('chickpea', 'Chickpeas, cooked', {
+        displayName: 'Chickpeas',
+        searchAliases: ['garbanzo beans'],
+      }),
+      food('rice', 'Rice, white, cooked', {
+        displayName: 'White Rice',
+        variantLabel: 'Long Grain · Cooked',
+      }),
+    ];
+
+    expect(rankFoodSearchResults(foods, 'beans')[0]?.id).toBe('chickpea');
+    expect(rankFoodSearchResults(foods, 'cooked')[0]?.id).toBe('rice');
+  });
+
+  it('ranks an exact secondary identity word above an unrelated prefix match', () => {
+    const ranked = rankFoodSearchResults(
+      [
+        food('milkfish', 'Fish, milkfish, raw', {
+          displayName: 'Milkfish',
+          searchPriority: 1,
+        }),
+        food('whole-milk', 'Milk, whole', {
+          displayName: 'Whole Milk',
+        }),
+      ],
+      'milk',
+    );
+
+    expect(ranked.map(({ id }) => id)).toEqual(['whole-milk', 'milkfish']);
   });
 
   it('orders common egg results before preparations, bird eggs, and industrial variants', () => {
@@ -230,6 +288,101 @@ describe('food search ranking', () => {
     expect(rankFoodSearchResults(foods.slice(7), 'chicken').map(({ id }) => id)).toEqual([
       'breast',
       'sandwich',
+    ]);
+  });
+
+  it('applies specialty-category demotion only in the food-recognition context', () => {
+    const general = food('general', 'Banana, raw', {
+      displayName: 'Banana',
+      category: { id: 'fruit', name: 'Fruits', description: null },
+    });
+    const specialty = food('specialty', 'Banana, infant food', {
+      displayName: 'Banana',
+      category: { id: 'baby-food', name: 'Baby Foods', description: null },
+    });
+
+    expect(rankFoodSearchResults([general, specialty], 'banana').map(({ id }) => id)).toEqual([
+      'specialty',
+      'general',
+    ]);
+    expect(rankFoodSearchResults([general, specialty], 'banana', 'food-recognition').map(({ id }) => id)).toEqual([
+      'general',
+      'specialty',
+    ]);
+  });
+
+  it('lets corrected common-food presentation improve both catalog and recognition matching', () => {
+    const generalName = 'Carrots, raw';
+    const generalPresentation = resolveFoodPresentation(generalName);
+    const general = food('general-carrots', generalName, {
+      ...generalPresentation,
+      category: { id: 'vegetables', name: 'Vegetables', description: null },
+    });
+    const specialtyName = 'Babyfood, carrots, toddler';
+    const specialtyPresentation = resolveFoodPresentation(specialtyName);
+    const specialty = food('baby-carrots', specialtyName, {
+      ...specialtyPresentation,
+      searchPriority: -1,
+      category: { id: 'baby-food', name: 'Baby Foods', description: null },
+    });
+
+    expect(rankFoodSearchResults([specialty, general], 'carrots').map(({ id }) => id)).toEqual([
+      'general-carrots',
+      'baby-carrots',
+    ]);
+    expect(rankFoodSearchResults([specialty, general], 'carrots', 'food-recognition').map(({ id }) => id)).toEqual([
+      'general-carrots',
+      'baby-carrots',
+    ]);
+  });
+
+  it('does not let the recognition penalty override an explicitly higher search priority', () => {
+    const general = food('general', 'Formula', {
+      displayName: 'Formula',
+      searchPriority: 0,
+      category: { id: 'food', name: 'Food', description: null },
+    });
+    const specialty = food('specialty', 'Infant Formula', {
+      displayName: 'Formula',
+      searchPriority: 1,
+      category: { id: 'infant', name: 'Infant', description: null },
+    });
+
+    expect(rankFoodSearchResults([general, specialty], 'formula', 'food-recognition')[0]?.id).toBe('specialty');
+  });
+
+  it('diversifies the initial catalog page while preserving all ranked variants', () => {
+    const ranked = [
+      food('white-1', 'Rice, white, cooked', {
+        displayName: 'White Rice',
+      }),
+      food('white-2', 'Rice, white, raw', {
+        displayName: 'White Rice',
+      }),
+      food('brown', 'Rice, brown, cooked', {
+        displayName: 'Brown Rice',
+      }),
+      food('wild', 'Wild rice, cooked', {
+        displayName: 'Wild Rice',
+      }),
+      food('brown-2', 'Rice, brown, raw', {
+        displayName: 'Brown Rice',
+      }),
+    ];
+
+    const diversified = diversifyFoodSearchResults(ranked, 3);
+
+    expect(diversified.slice(0, 3).map(({ id }) => id)).toEqual([
+      'white-1',
+      'brown',
+      'wild',
+    ]);
+    expect(diversified.map(({ id }) => id)).toEqual([
+      'white-1',
+      'brown',
+      'wild',
+      'white-2',
+      'brown-2',
     ]);
   });
 });

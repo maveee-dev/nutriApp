@@ -1,3 +1,5 @@
+import type { NutritionInsight } from '../../insights/types/nutrition-insight.type.js';
+
 export class FoodEvaluationReasonDto {
   code!: string;
   direction!: string;
@@ -9,6 +11,7 @@ export class FoodEvaluationReasonDto {
 
 export class FoodEvaluationContributionDto {
   nutrient!: string;
+  unit?: string;
   amount!: string;
   targetValue!: string | null;
   currentDailyValue!: string | null;
@@ -22,4 +25,5 @@ export class FoodEvaluationResponseDto {
   reasons!: FoodEvaluationReasonDto[];
   contributions!: FoodEvaluationContributionDto[];
   deferredPolicies!: { policyId: string; reason: string; explanation: string }[];
+  nutritionInsights?: NutritionInsight[];
 }

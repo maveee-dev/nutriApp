@@ -104,12 +104,21 @@ export function buildProfileCompletionItems(input: ProfileCompletionInput): Prof
       action: guidance.action,
     });
   } else {
+    const hasKnownActiveModality = input.dialysisStatus?.status === 'ACTIVE'
+      && (input.dialysisStatus.modality === 'HEMODIALYSIS' || input.dialysisStatus.modality === 'PERITONEAL_DIALYSIS');
+    const hasUnresolvedActiveModality = input.dialysisStatus?.status === 'ACTIVE' && !hasKnownActiveModality;
     items.push({
       id: 'dialysis',
       label: 'Dialysis treatment details',
-      detail: input.dialysisStatus == null ? 'No dialysis treatment is required by current guidance.' : 'Dialysis treatment status recorded.',
-      status: 'informational',
-      action: undefined,
+      detail: input.dialysisStatus == null
+        ? 'Dialysis treatment status has not been recorded.'
+        : input.dialysisStatus.status === 'INACTIVE'
+          ? 'Not on dialysis recorded.'
+          : hasUnresolvedActiveModality
+            ? 'Please confirm whether treatment is hemodialysis or peritoneal dialysis.'
+            : 'Dialysis treatment status recorded.',
+      status: hasUnresolvedActiveModality ? 'attention' : 'informational',
+      action: hasUnresolvedActiveModality ? { label: 'Confirm dialysis type', to: '/health#dialysis-status' } : undefined,
     });
   }
 

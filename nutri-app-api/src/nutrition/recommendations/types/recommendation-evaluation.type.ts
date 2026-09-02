@@ -1,4 +1,4 @@
-import type { DailyAdherenceSource } from '../../analysis/types/daily-adherence.source.js';
+import type { DailyAdherenceByPolicySource, DailyAdherenceSource } from '../../analysis/types/daily-adherence.source.js';
 import type { DailyMealAssessmentSource } from '../../analysis/types/meal-assessment.type.js';
 import type { NutritionPolicyDeferralSource } from '../../analysis/types/nutrition-targets.type.js';
 import type { NutritionTargetProvenance } from '../../analysis/types/nutrition-targets.type.js';
@@ -16,6 +16,7 @@ export interface RecommendationEvaluationMetadata {
   readonly mealAssessments?: readonly DailyMealAssessmentSource[];
   readonly mealAssessmentsByDate?: readonly RecommendationEvaluationDay[];
   readonly dailyAdherence?: DailyAdherenceSource;
+  readonly dailyAdherenceByPolicy?: readonly DailyAdherenceByPolicySource[];
   readonly targetProvenance?: readonly NutritionTargetProvenance[];
   readonly dailyAdherenceByDate?: readonly RecommendationEvaluationDay[];
   readonly deferredPolicies: readonly NutritionPolicyDeferralSource[];
@@ -30,4 +31,5 @@ export interface RecommendationEvaluationDay {
   readonly date: string;
   readonly mealAssessments?: readonly DailyMealAssessmentSource[];
   readonly dailyAdherence?: DailyAdherenceSource;
+  readonly dailyAdherenceByPolicy?: readonly DailyAdherenceByPolicySource[];
 }

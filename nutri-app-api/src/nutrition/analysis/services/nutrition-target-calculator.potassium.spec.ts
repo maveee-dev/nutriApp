@@ -37,4 +37,36 @@ describe('NutritionTargetCalculator potassium evidence integration', () => {
     })]));
     expect(result.targetProvenance).toEqual(expect.arrayContaining([expect.objectContaining({ target: 'potassiumMilligrams', policyId: 'ckd-potassium-v1' })]));
   });
+
+  it('keeps potassium out of targets and resolved rules while exposing its informational limitation', () => {
+    const calculator = new NutritionTargetCalculator(createNutritionTargetPolicyRegistrations());
+    const result = calculator.calculateFromContext({
+      profile: { weightKg: 70 },
+      conditionCodes: ['ckd'],
+      energyGoal: 'maintenance',
+      asOf: new Date('2026-08-22T00:00:00Z'),
+      evidence: {
+        diabetes: { carbohydrateTarget: null },
+        renal: {
+          egfrFinding: null,
+          dialysisStatus: 'ACTIVE',
+          dialysisModality: 'HEMODIALYSIS',
+          dialysisReportedAt: new Date('2026-08-20T00:00:00Z'),
+          potassiumFinding: {
+            testCode: 'potassium', value: '4.8', unit: 'mmol/L',
+            collectedAt: new Date('2026-08-20T00:00:00Z'), status: 'reported', explanation: 'reported',
+          },
+        },
+        'individualized-targets': { targets: [] },
+      },
+    });
+
+    expect(result.targets.potassiumMilligrams).toBeUndefined();
+    expect(result.resolvedRules?.some(({ policyId }) => policyId === 'ckd-potassium-v1')).toBe(false);
+    expect(result.targetProvenance?.some(({ policyId }) => policyId === 'ckd-potassium-v1')).toBe(false);
+    expect(result.deferredPolicies).toEqual(expect.arrayContaining([expect.objectContaining({
+      policyId: 'ckd-potassium-v1',
+      reason: 'missing-individualized-potassium-target',
+    })]));
+  });
 });

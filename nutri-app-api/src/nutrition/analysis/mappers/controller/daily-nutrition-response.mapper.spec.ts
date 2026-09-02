@@ -62,4 +62,45 @@ describe('DailyNutritionResponseMapper', () => {
       }],
     });
   });
+
+  it('maps generic per-policy adherence with its replay metadata', () => {
+    const response = DailyNutritionResponseMapper.toResponseDto({
+      date: '2026-08-12',
+      mealCount: 1,
+      totals: [],
+      targets: { sodiumMilligrams: '2300', proteinGrams: null, potassiumMilligrams: '2000' },
+      insights: [],
+      deferredPolicies: [],
+      caloriesConsumedKcal: null,
+      remainingCaloriesKcal: null,
+      calorieTargetPercentage: null,
+      dailyAdherenceByPolicy: [{
+        policyId: 'ckd-potassium-v1',
+        policyVersion: 'v1',
+        target: 'potassiumMilligrams',
+        measurementKey: 'potassium',
+        ruleKind: 'upper-limit',
+        status: 'available',
+        targetValue: '2000',
+        consumedValue: '900',
+        remainingValue: '1100',
+        exceededValue: null,
+        coveragePercentage: 100,
+        targetProvenance: null,
+        snapshotIds: ['snapshot-potassium'],
+        deferredPolicy: null,
+        evaluatorVersion: 'food-evaluation-v3',
+        policySetFingerprint: 'policy-set-1',
+        evaluationFingerprint: 'daily-potassium',
+      }],
+    });
+
+    expect(response.targets.potassiumMilligrams).toBe('2000');
+    expect(response.dailyAdherenceByPolicy).toEqual([expect.objectContaining({
+      policyId: 'ckd-potassium-v1',
+      measurementKey: 'potassium',
+      snapshotIds: ['snapshot-potassium'],
+      evaluationFingerprint: 'daily-potassium',
+    })]);
+  });
 });

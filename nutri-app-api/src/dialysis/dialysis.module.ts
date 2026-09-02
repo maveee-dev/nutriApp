@@ -6,6 +6,6 @@ import { UserDialysisStatusService } from './services/user-dialysis-status.servi
 @Module({
   controllers: [UserDialysisStatusController],
   providers: [UserDialysisStatusRepository, UserDialysisStatusService],
-  exports: [UserDialysisStatusRepository],
+  exports: [UserDialysisStatusRepository, UserDialysisStatusService],
 })
 export class DialysisModule {}

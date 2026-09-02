@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { DialysisModality, DialysisStatus } from '../../../../generated/prisma/client.js';
 
 export class UpdateDialysisStatusDto {
@@ -11,5 +11,15 @@ export class UpdateDialysisStatusDto {
 
   @IsOptional()
   @IsDateString()
-  effectiveAt?: string;
+  effectiveAt?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  frequency?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  schedule?: string | null;
 }

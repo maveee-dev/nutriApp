@@ -1,6 +1,7 @@
 import { CanonicalCalculationKernel } from '../../calculation/index.js';
 import { NutritionAnalysisItemSource } from '../sources/nutrition-analysis.source.js';
 import { NutritionTotal } from '../types/nutrition-total.type.js';
+import { authoritativeNutrientKey, selectAuthoritativeNutrientInputs } from './authoritative-nutrient-input.js';
 
 export class NutritionCalculator {
   private readonly calculationKernel = new CanonicalCalculationKernel();
@@ -10,8 +11,8 @@ export class NutritionCalculator {
       items: items.map((item) => ({
         servingGrams: item.servingGrams,
         quantity: item.quantity,
-        nutrients: item.nutrients.map((nutrient) => ({
-          nutrientKey: nutrient.name.trim().toLowerCase(),
+        nutrients: selectAuthoritativeNutrientInputs(item.nutrients).map((nutrient) => ({
+          nutrientKey: authoritativeNutrientKey(nutrient),
           name: nutrient.name,
           unit: nutrient.unit,
           amountPer100Grams: nutrient.amountPer100Grams,

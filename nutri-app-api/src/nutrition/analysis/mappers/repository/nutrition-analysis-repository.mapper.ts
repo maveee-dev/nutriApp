@@ -17,6 +17,7 @@ export class NutritionAnalysisRepositoryMapper {
           quantity: item.quantity.toString(),
           servingGrams: item.serving.grams.toString(),
           nutrients: item.serving.food.nutrients.map((foodNutrient) => ({
+            sourceId: foodNutrient.nutrient.sourceId,
             name: foodNutrient.nutrient.name,
             unit: foodNutrient.nutrient.unit,
             amountPer100Grams: foodNutrient.amount.toString(),

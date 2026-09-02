@@ -4,12 +4,15 @@ import {
   BEVERAGE_DISPLAY_MODIFIERS,
   CATEGORY_PRODUCT_FORM_TYPES,
   FOOD_PREPARATIONS,
+  FOOD_RIPENESS_DISPLAY_LABELS,
   FOOD_STATES,
+  FOOD_IDENTITY_DESCRIPTORS,
   MEAT_ANIMALS,
   MEAT_CUTS,
   MEAT_PROCESSING_DESCRIPTORS,
   MEAT_QUALITY_DESCRIPTORS,
   MEAT_TRIM_AND_BONE_DESCRIPTORS,
+  NATURALLY_RAW_PRODUCE_HEADS,
 } from './food-presentation-vocabulary.js';
 import type {
   FoodPresentationMetadata,
@@ -126,6 +129,15 @@ const BEVERAGE_CONTEXT_SET: ReadonlySet<string> = new Set(BEVERAGE_CONTEXTS);
 const BEVERAGE_DISPLAY_MODIFIER_SET: ReadonlySet<string> = new Set(
   BEVERAGE_DISPLAY_MODIFIERS,
 );
+const FOOD_RIPENESS_LABELS: ReadonlyMap<string, string> = new Map(
+  Object.entries(FOOD_RIPENESS_DISPLAY_LABELS),
+);
+const NATURALLY_RAW_PRODUCE_HEAD_SET: ReadonlySet<string> = new Set(
+  NATURALLY_RAW_PRODUCE_HEADS.map(normalizeFoodSearchText),
+);
+const FOOD_IDENTITY_DESCRIPTOR_SET: ReadonlySet<string> = new Set(
+  FOOD_IDENTITY_DESCRIPTORS.map(normalizeFoodSearchText),
+);
 const FOOD_CONTEXT_PREFIXES = new Set([
   'chinese',
   'italian',
@@ -205,6 +217,7 @@ const INVERTED_COMPOUND_FOOD_TYPES: Readonly<Record<string, string>> = {
   rolls: 'Roll',
   soup: 'Soup',
   soups: 'Soup',
+  vinegar: 'Vinegar',
 };
 const COMPOUND_FOOD_SUFFIXES = new Set([
   'bagel',
@@ -366,6 +379,7 @@ const GENERIC_NON_BRAND_PREFIXES = new Set([
   'tomatoes',
   'turkey',
   'tuna',
+  'vinegar',
   'water',
   'wine',
   'yogurt',
@@ -417,6 +431,51 @@ export function normalizeFoodSearchText(value: string): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
     .replace(/\s+/g, ' ');
+}
+
+export function normalizeFoodSearchTokens(value: string): string[] {
+  return normalizeFoodSearchText(value).split(' ').filter(Boolean);
+}
+
+/** Matches ordinary singular/plural forms without changing stored names. */
+export function foodSearchTokensMatch(left: string, right: string): boolean {
+  const normalizedLeft = normalizeFoodSearchText(left);
+  const normalizedRight = normalizeFoodSearchText(right);
+  return (
+    normalizedLeft === normalizedRight ||
+    singularize(normalizedLeft).toLowerCase() ===
+      singularize(normalizedRight).toLowerCase()
+  );
+}
+
+/**
+ * Identifies a promoted variety title whose queried word is an identity
+ * descriptor rather than a preparation/state. This lets broad searches such
+ * as "rice" find "White Rice" without promoting every preparation title.
+ */
+export function isIdentityQualifiedDisplayName(
+  displayName: string,
+  query: string,
+): boolean {
+  const displayTokens = normalizeFoodSearchTokens(displayName);
+  const queryTokens = normalizeFoodSearchTokens(query);
+  if (queryTokens.length === 0 || displayTokens.length <= queryTokens.length)
+    return false;
+
+  const queryMatchesDisplay = queryTokens.every((queryToken) =>
+    displayTokens.some((displayToken) =>
+      foodSearchTokensMatch(queryToken, displayToken),
+    ),
+  );
+  if (!queryMatchesDisplay) return false;
+
+  return displayTokens.some(
+    (displayToken) =>
+      FOOD_IDENTITY_DESCRIPTOR_SET.has(displayToken) &&
+      !queryTokens.some((queryToken) =>
+        foodSearchTokensMatch(queryToken, displayToken),
+      ),
+  );
 }
 
 export function isSpecificFoodVariantQuery(value: string): boolean {
@@ -599,24 +658,33 @@ function isNonProductBrandPrefix(segment: string): boolean {
   return NON_PRODUCT_BRAND_PREFIXES.has(normalizedSegment(segment));
 }
 
-function isLikelyBrandSegment(segment: string): boolean {
-  const normalized = normalizedSegment(segment);
-  if (!normalized || GENERIC_NON_BRAND_PREFIXES.has(normalized)) return false;
+/**
+ * Returns true only when the canonical segment carries an explicit brand
+ * signal. A title-cased word by itself is intentionally not enough: USDA
+ * commonly title-cases ordinary food nouns such as "Carrots", "Broccoli",
+ * and "Bananas".
+ */
+function hasExplicitBrandSignal(segment: string): boolean {
   if (
     isRestaurantBrandPrefix(segment) ||
     isProductBrandIdentity(segment) ||
     isNonProductBrandPrefix(segment) ||
-    brandDisplayName(segment)
+    brandDisplayName(segment) ||
+    /[’']s$/i.test(segment.trim())
   )
     return true;
-
-  if (/[’']s$/i.test(segment.trim())) return true;
 
   const letters = segment.match(/[A-Za-z]/g) ?? [];
   return (
     letters.length >= 2 &&
     letters.join('') === letters.join('').toUpperCase()
   );
+}
+
+function isLikelyBrandSegment(segment: string): boolean {
+  const normalized = normalizedSegment(segment);
+  if (!normalized || GENERIC_NON_BRAND_PREFIXES.has(normalized)) return false;
+  return hasExplicitBrandSignal(segment);
 }
 
 function splitLeadingBrandSegment(
@@ -646,8 +714,13 @@ function isPotentialLeadingRetailBrand(
   segment: string,
   segmentCount: number,
   nextSegment?: string,
+  hasTrailingPreparationOrState = false,
 ): boolean {
-  if (isLikelyBrandSegment(segment)) return true;
+  if (hasExplicitBrandSignal(segment)) return true;
+  // A plain food noun followed by a USDA preparation/state descriptor is a
+  // food concept, not a manufacturer. This prevents names such as
+  // "Carrots, raw" from becoming "Raw" with "Carrots" as its variant.
+  if (hasTrailingPreparationOrState) return false;
   const value = segment.trim();
   const next = normalizedSegment(nextSegment ?? '');
   if (next && COMPOUND_FOOD_SUFFIXES.has(next)) return false;
@@ -656,6 +729,18 @@ function isPotentialLeadingRetailBrand(
     /^[A-Z][a-z]+(?:[-'][A-Za-z]+)?$/.test(value) &&
     !COMPOUND_FOOD_SUFFIXES.has(normalizedSegment(value)) &&
     !GENERIC_NON_BRAND_PREFIXES.has(normalizedSegment(value))
+  );
+}
+
+function isImplicitRetailBrandCandidate(segment: string): boolean {
+  const value = segment.trim();
+  const normalized = normalizedSegment(value);
+  return (
+    normalized.length > 0 &&
+    !hasExplicitBrandSignal(value) &&
+    !COMPOUND_FOOD_SUFFIXES.has(normalized) &&
+    !GENERIC_NON_BRAND_PREFIXES.has(normalized) &&
+    /^[A-Z][a-z]+(?:[-'][A-Za-z]+)?$/.test(value)
   );
 }
 
@@ -746,6 +831,12 @@ function deriveCategoryProductFormName(
 
   const descriptor = cleanSegment(segments[descriptorIndex]!);
   if (!descriptor) return null;
+
+  // A state such as raw, cooked, or frozen describes the category item; it
+  // is not the food concept itself. Keep the existing product-form behavior
+  // for meaningful forms such as "mashed potatoes", but let plain states
+  // flow through the ordinary-food grammar and become variants.
+  if (isExactFoodStateDescriptor(descriptor)) return null;
 
   const descriptorName = titleCase(descriptor);
   const displayName = isCompleteProductDescriptor(descriptor, categoryForm)
@@ -912,7 +1003,10 @@ function removeMeatVariantWords(value: string): string {
 function isMeatCutSegment(segment: string): boolean {
   const normalized = normalizedSegment(segment);
   const words = normalized.split(' ');
-  return words.some((word) => CUT_SEGMENTS.has(singularize(word).toLowerCase()));
+  return (
+    CUT_SEGMENTS.has(normalized) ||
+    words.some((word) => CUT_SEGMENTS.has(singularize(word).toLowerCase()))
+  );
 }
 
 function isMeatFormWord(value: string): boolean {
@@ -1178,6 +1272,9 @@ function deriveBrandLeadingName(
   segments: readonly string[],
 ): { displayName: string; used: Set<number> } | null {
   const hasFoodGroupPrefix = isFoodGroupPrefix(segments[0] ?? '');
+  const hasTrailingPreparationOrState = segments
+    .slice(1)
+    .some(isExactPreparationOrStateDescriptor);
   const brandIndex = hasFoodGroupPrefix
     ? segments.findIndex(
         (segment, index) => index > 0 && isLikelyBrandSegment(segment),
@@ -1186,6 +1283,7 @@ function deriveBrandLeadingName(
         segments[0] ?? '',
         segments.length,
         segments[1],
+        hasTrailingPreparationOrState,
       )
       ? 0
       : -1;
@@ -1260,6 +1358,19 @@ function deriveNameAndUsedSegments(segments: readonly string[]): {
   const statePrefixedName = deriveStatePrefixedName(segments);
   if (statePrefixedName) return statePrefixedName;
 
+  const identityQualifiedName = deriveIdentityQualifiedName(segments);
+  if (identityQualifiedName) return identityQualifiedName;
+
+  const ripenessName = deriveRipenessName(segments);
+  if (ripenessName) return ripenessName;
+
+  // USDA frequently emits ordinary food nouns as title-cased first
+  // segments. When one is followed by a known preparation/state descriptor,
+  // promote that noun and leave the descriptor for the variant label. This
+  // is deliberately vocabulary-driven and does not enumerate foods.
+  const leadingFoodWithDescriptor = deriveLeadingFoodWithDescriptor(segments);
+  if (leadingFoodWithDescriptor) return leadingFoodWithDescriptor;
+
   const first = segments[0] ?? '';
   const firstLower = first.toLowerCase();
   const knownBrandName = brandDisplayName(first);
@@ -1286,6 +1397,100 @@ function deriveNameAndUsedSegments(segments: readonly string[]): {
   }
 
   return { displayName: titleCase(singularize(first)), used };
+}
+
+function deriveLeadingFoodWithDescriptor(
+  segments: readonly string[],
+): { displayName: string; used: Set<number> } | null {
+  const first = segments[0];
+  if (
+    !first ||
+    !isImplicitRetailBrandCandidate(first) ||
+    !segments.slice(1).some(isExactPreparationOrStateDescriptor)
+  )
+    return null;
+
+  return {
+    displayName: titleCase(first),
+    used: new Set([0]),
+  };
+}
+
+/**
+ * Promotes a meaningful variety descriptor into the title when USDA places
+ * it after a broad food head, for example "Rice, white, cooked". The food
+ * head is deliberately vocabulary-driven and the descriptor list contains
+ * only identity terms; preparation, state, quality, and processing terms
+ * remain variants.
+ */
+function deriveIdentityQualifiedName(
+  segments: readonly string[],
+): { displayName: string; used: Set<number> } | null {
+  const head = segments[0];
+  const normalizedHead = normalizedSegment(head ?? '');
+  if (!head || !GENERIC_NON_BRAND_PREFIXES.has(normalizedHead)) return null;
+
+  const descriptorIndex = segments.findIndex(
+    (segment, index) =>
+      index > 0 && FOOD_IDENTITY_DESCRIPTOR_SET.has(normalizedSegment(segment)),
+  );
+  if (descriptorIndex < 0) return null;
+
+  const descriptor = segments[descriptorIndex];
+  if (!descriptor || isExactPreparationOrStateDescriptor(descriptor)) {
+    return null;
+  }
+
+  return {
+    displayName: `${titleCase(descriptor)} ${titleCase(singularize(head))}`,
+    used: new Set([0, descriptorIndex]),
+  };
+}
+
+/**
+ * Produces natural names for simple produce records whose USDA descriptors
+ * communicate ripeness and raw state, for example "Bananas, ripe and
+ * slightly ripe, raw" -> "Ripe Banana". The rule is vocabulary-driven and
+ * deliberately excludes compound, prepared, and branded records.
+ */
+function deriveRipenessName(
+  segments: readonly string[],
+): { displayName: string; used: Set<number> } | null {
+  const head = segments[0];
+  if (!head || isFoodGroupPrefix(head) || isLikelyBrandSegment(head)) return null;
+
+  const normalizedHead = normalizedSegment(head);
+  const singularHead = normalizedSegment(singularize(head));
+  if (
+    !NATURALLY_RAW_PRODUCE_HEAD_SET.has(normalizedHead) &&
+    !NATURALLY_RAW_PRODUCE_HEAD_SET.has(singularHead)
+  )
+    return null;
+
+  let ripenessLabel: string | undefined;
+  let hasRawState = false;
+  for (const segment of segments.slice(1)) {
+    const normalized = normalizedSegment(segment);
+    const label = FOOD_RIPENESS_LABELS.get(normalized);
+    if (label) {
+      if (ripenessLabel != null && ripenessLabel !== label) return null;
+      ripenessLabel = label;
+      continue;
+    }
+    if (normalized === 'raw') {
+      hasRawState = true;
+      continue;
+    }
+    return null;
+  }
+
+  if (!hasRawState) return null;
+
+  const foodName = titleCaseProductConcept(singularize(head));
+  return {
+    displayName: ripenessLabel == null ? foodName : `${ripenessLabel} ${foodName}`,
+    used: new Set(segments.map((_, index) => index)),
+  };
 }
 
 export function deriveFoodPresentation(

@@ -349,6 +349,53 @@ describe('food presentation derivation', () => {
     });
   });
 
+  it('promotes common variety descriptors so variant-heavy foods remain distinguishable', () => {
+    expect(deriveFoodPresentation('Rice, white, long grain, cooked')).toEqual({
+      derivedDisplayName: 'White Rice',
+      derivedVariantLabel: 'Long Grain · Cooked',
+    });
+    expect(deriveFoodPresentation('Rice, brown, cooked')).toEqual({
+      derivedDisplayName: 'Brown Rice',
+      derivedVariantLabel: 'Cooked',
+    });
+    expect(deriveFoodPresentation('Rice, black, unenriched, raw')).toEqual({
+      derivedDisplayName: 'Black Rice',
+      derivedVariantLabel: 'Unenriched · Raw',
+    });
+    expect(deriveFoodPresentation('Rice, jasmine, cooked')).toEqual({
+      derivedDisplayName: 'Jasmine Rice',
+      derivedVariantLabel: 'Cooked',
+    });
+    expect(deriveFoodPresentation('Apples, gala, raw')).toEqual({
+      derivedDisplayName: 'Gala Apple',
+      derivedVariantLabel: 'Raw',
+    });
+    expect(deriveFoodPresentation('Apples, green, raw')).toEqual({
+      derivedDisplayName: 'Green Apple',
+      derivedVariantLabel: 'Raw',
+    });
+    expect(deriveFoodPresentation('Milk, whole')).toEqual({
+      derivedDisplayName: 'Whole Milk',
+      derivedVariantLabel: null,
+    });
+    expect(deriveFoodPresentation('Milk, evaporated, 2% milkfat')).toEqual({
+      derivedDisplayName: 'Evaporated Milk',
+      derivedVariantLabel: '2% Milkfat',
+    });
+    expect(deriveFoodPresentation('Cheese, cheddar, shredded')).toEqual({
+      derivedDisplayName: 'Cheddar Cheese',
+      derivedVariantLabel: 'Shredded',
+    });
+    expect(deriveFoodPresentation('Vinegar, cider')).toEqual({
+      derivedDisplayName: 'Cider Vinegar',
+      derivedVariantLabel: null,
+    });
+    expect(deriveFoodPresentation('Vinegar, balsamic')).toEqual({
+      derivedDisplayName: 'Balsamic Vinegar',
+      derivedVariantLabel: null,
+    });
+  });
+
   it('supports product-form grammar after a USDA food-group prefix', () => {
     expect(
       deriveFoodPresentation('Fast foods, potato, french fried, frozen'),
@@ -383,6 +430,24 @@ describe('food presentation derivation', () => {
     ).toEqual({
       derivedDisplayName: 'Chicken Breast',
       derivedVariantLabel: 'Meat Only · Cooked · Roasted',
+    });
+  });
+
+  it('promotes common poultry portions into the primary food concept', () => {
+    expect(deriveFoodPresentation('Chicken, back, meat and skin, cooked')).toEqual({
+      derivedDisplayName: 'Chicken Back',
+      derivedVariantLabel: 'With Skin · Cooked',
+    });
+    expect(deriveFoodPresentation('Chicken, dark meat, cooked')).toEqual({
+      derivedDisplayName: 'Chicken Dark Meat',
+      derivedVariantLabel: 'Cooked',
+    });
+  });
+
+  it('promotes nested product forms into complete titles', () => {
+    expect(deriveFoodPresentation('Babyfood, cereal, rice, dry fortified')).toEqual({
+      derivedDisplayName: 'Rice Cereal',
+      derivedVariantLabel: 'Babyfood · Dry Fortified',
     });
   });
 
@@ -457,6 +522,61 @@ describe('food presentation derivation', () => {
     ).toEqual({
       derivedDisplayName: 'Apple',
       derivedVariantLabel: 'Raw · With Skin',
+    });
+  });
+
+  it('keeps ordinary food nouns as the primary concept before preparation states', () => {
+    expect(deriveFoodPresentation('Carrots, raw')).toEqual({
+      derivedDisplayName: 'Carrots',
+      derivedVariantLabel: 'Raw',
+    });
+    expect(deriveFoodPresentation('Carrots, cooked')).toEqual({
+      derivedDisplayName: 'Carrots',
+      derivedVariantLabel: 'Cooked',
+    });
+    expect(deriveFoodPresentation('Bananas, raw')).toEqual({
+      derivedDisplayName: 'Banana',
+      derivedVariantLabel: null,
+    });
+    expect(deriveFoodPresentation('Broccoli, steamed')).toEqual({
+      derivedDisplayName: 'Broccoli',
+      derivedVariantLabel: 'Steamed',
+    });
+    expect(deriveFoodPresentation('Spinach, frozen')).toEqual({
+      derivedDisplayName: 'Spinach',
+      derivedVariantLabel: 'Frozen',
+    });
+  });
+
+  it('uses natural ripeness labels without changing the canonical food concept', () => {
+    expect(
+      deriveFoodPresentation('Bananas, ripe and slightly ripe, raw'),
+    ).toEqual({
+      derivedDisplayName: 'Ripe Banana',
+      derivedVariantLabel: null,
+    });
+    expect(deriveFoodPresentation('Bananas, overripe, raw')).toEqual({
+      derivedDisplayName: 'Overripe Banana',
+      derivedVariantLabel: null,
+    });
+    expect(deriveFoodPresentation('Apples, ripe, raw')).toEqual({
+      derivedDisplayName: 'Ripe Apple',
+      derivedVariantLabel: null,
+    });
+  });
+
+  it('keeps pure category states secondary while preserving meaningful product forms', () => {
+    expect(deriveFoodPresentation('Potatoes, raw')).toEqual({
+      derivedDisplayName: 'Potato',
+      derivedVariantLabel: 'Raw',
+    });
+    expect(deriveFoodPresentation('Tomatoes, cooked')).toEqual({
+      derivedDisplayName: 'Tomato',
+      derivedVariantLabel: 'Cooked',
+    });
+    expect(deriveFoodPresentation('Potatoes, mashed')).toEqual({
+      derivedDisplayName: 'Mashed Potatoes',
+      derivedVariantLabel: null,
     });
   });
 

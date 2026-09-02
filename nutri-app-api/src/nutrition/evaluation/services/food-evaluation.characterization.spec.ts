@@ -18,6 +18,7 @@ describe('FoodEvaluationEngine characterization', () => {
     expect(result.evaluationStatus).toBe('evaluated');
     expect(result.coverage).toBe(100);
     expect(result.contributions).toEqual([
+      expect.objectContaining({ nutrient: 'sodium', unit: 'mg', amount: '120', targetValue: '2300' }),
       expect.objectContaining({ nutrient: 'protein', unit: 'g', amount: '10', targetValue: '64' }),
       expect.objectContaining({ nutrient: 'potassium', unit: 'mg', amount: '250', targetValue: '2000' }),
       expect.objectContaining({ nutrient: 'phosphorus', unit: 'mg', amount: '100', targetValue: '800' }),
@@ -56,6 +57,21 @@ describe('FoodEvaluationEngine characterization', () => {
       expect.objectContaining({ nutrient: 'carbohydrates', amount: '50' }),
       expect.objectContaining({ nutrient: 'calories', amount: '250' }),
     ]));
+  });
+
+  it('does not double-count alternative USDA carbohydrate rows in evaluation', () => {
+    const result = engine.evaluate({
+      nutrients: [
+        { sourceId: '1005', name: 'Carbohydrate, by difference', unit: 'g', amountPer100Grams: '10' },
+        { sourceId: '1050', name: 'Carbohydrate, by summation', unit: 'g', amountPer100Grams: '12' },
+      ],
+      portionGrams: '100',
+      targets: { sodiumMilligrams: '2300', proteinGrams: null, carbohydrateGrams: '180' },
+      targetCalculation: { targets: { sodiumMilligrams: '2300', proteinGrams: null, carbohydrateGrams: '180' }, adjustments: [], deferredPolicies: [] },
+    });
+
+    expect(result.contributions).toContainEqual(expect.objectContaining({ nutrient: 'carbohydrates', amount: '10' }));
+    expect(result.contributions).not.toContainEqual(expect.objectContaining({ amount: '22' }));
   });
 
   it('preserves zero score-bearing values as evaluated evidence', () => {

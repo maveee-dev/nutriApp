@@ -19,6 +19,9 @@ import { GeminiProvider } from './providers/gemini.provider.js';
     { provide: AI_PROVIDER, useExisting: GeminiProvider },
     AiService,
   ],
-  exports: [AiService],
+  // The configured SDK client is shared by provider-specific AI adapters,
+  // including food recognition. Domain services still depend on their own
+  // provider interfaces rather than on the SDK directly.
+  exports: [AiService, GEMINI_CLIENT],
 })
 export class AiModule {}

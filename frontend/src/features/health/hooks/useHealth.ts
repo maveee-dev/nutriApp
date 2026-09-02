@@ -5,7 +5,57 @@ import type {
   UpdateProfileRequest,
   UpdateDialysisStatusRequest,
   CreateLaboratoryResultRequest,
+  UpdateHealthProfileRequest,
+  CreateNutritionTargetRequest,
+  UpdateNutritionTargetRequest,
 } from '../types/health.types';
+
+export const useHealthProfile = () => useQuery({
+  queryKey: ['health-profile'],
+  queryFn: () => healthApi.getHealthProfile(),
+});
+
+export const useUpdateHealthProfileMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateHealthProfileRequest) => healthApi.updateHealthProfile(data),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(['health-profile'], profile);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['conditions'] });
+      queryClient.invalidateQueries({ queryKey: ['dialysis-status'] });
+    },
+  });
+};
+
+export const useNutritionTargets = () => useQuery({
+  queryKey: ['nutrition-targets'],
+  queryFn: () => healthApi.getNutritionTargets(),
+});
+
+export const useCreateNutritionTargetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateNutritionTargetRequest) => healthApi.createNutritionTarget(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['health-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['nutrition'] });
+    },
+  });
+};
+
+export const useUpdateNutritionTargetMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateNutritionTargetRequest }) => healthApi.updateNutritionTarget(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['health-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['nutrition'] });
+    },
+  });
+};
 
 // Profile Queries & Mutations
 export const useProfile = () => {

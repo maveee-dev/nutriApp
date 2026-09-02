@@ -1,5 +1,6 @@
 import type { FoodSummarySource } from '../sources/food-summary.source.js';
 import {
+  isIdentityQualifiedDisplayName,
   isModifierOnlyDisplayNameMatch,
   isPrimaryConceptDisplayNameMatch,
   isSpecificFoodVariantQuery,
@@ -252,6 +253,9 @@ function describeMatch(
   } else if (aliases.some((alias) => alias.startsWith(normalizedQuery))) {
     tier = 4;
     reason = 'alias prefix match';
+  } else if (isIdentityQualifiedDisplayName(displayName, normalizedQuery)) {
+    tier = 2.5;
+    reason = 'secondary identity-token display-name match';
   } else if (isPrimaryConceptDisplayNameMatch(displayName, normalizedQuery)) {
     tier = 4;
     reason = 'primary-concept display-name match';

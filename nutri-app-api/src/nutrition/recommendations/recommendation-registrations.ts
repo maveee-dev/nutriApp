@@ -15,9 +15,12 @@ export function createRecommendationPolicyRegistrations(): readonly AnyRecommend
     createDiabetesCarbohydrateAdherenceRecommendationRegistration(),
     createDiabetesHistoricalCarbohydrateAdherenceRecommendationRegistration(),
     createGeneralUpperLimitRecommendationRegistration('added-sugar', 'added sugar', 'g'),
+    createGeneralUpperLimitRecommendationRegistration('saturated-fat', 'saturated fat', 'g'),
     createGeneralUpperLimitRecommendationRegistration('cholesterol', 'cholesterol', 'mg'),
     createConditionTargetRecommendationRegistration('protein', ['ckd-non-dialysis-protein-v1', 'hemodialysis-protein-v1', 'peritoneal-dialysis-protein-v1']),
     createConditionTargetRecommendationRegistration('carbohydrates', ['diabetes-carbohydrate-target-v1']),
+    createConditionTargetRecommendationRegistration('potassium', ['ckd-potassium-v1']),
+    createConditionTargetRecommendationRegistration('phosphorus', ['ckd-phosphorus-v1']),
     createMealAssessmentRecommendationRegistration(),
     createDeferredPolicyRecommendationRegistration(),
   ];

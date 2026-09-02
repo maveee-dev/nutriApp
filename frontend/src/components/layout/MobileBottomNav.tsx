@@ -1,15 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, MessageCircle } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, MessageCircle, ClipboardList, WandSparkles, FlaskConical, Lightbulb } from 'lucide-react';
 
 export const MobileBottomNav: React.FC = () => {
   const navItems = [
     { to: '/', label: 'Today', icon: <Sparkles size={20} /> },
     { to: '/consultation', label: 'Ask', icon: <MessageCircle size={20} /> },
     { to: '/meals', label: 'Meals', icon: <UtensilsCrossed size={20} /> },
+    { to: '/daily-tracker', label: 'Nutrition', icon: <ClipboardList size={20} /> },
+    { to: '/meal-planner', label: 'Plan', icon: <WandSparkles size={20} /> },
+    { to: '/recommendations', label: 'Suggest', icon: <Lightbulb size={20} /> },
+    { to: '/recipes', label: 'Recipes', icon: <UtensilsCrossed size={20} /> },
     { to: '/foods', label: 'Foods', icon: <Search size={20} /> },
     { to: '/trends', label: 'Trends', icon: <BarChart3 size={20} /> },
     { to: '/health', label: 'Health', icon: <HeartPulse size={20} /> },
+    { to: '/laboratory', label: 'Labs', icon: <FlaskConical size={20} /> },
   ];
 
   return (

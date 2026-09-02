@@ -51,4 +51,18 @@ describe('nutrition target registration composition', () => {
   it('does not register the legacy universal cholesterol policy for current evaluation', () => {
     expect(createNutritionTargetPolicyRegistrations().some(({ policyId }) => policyId === 'general-nutrition-cholesterol-v1')).toBe(false);
   });
+
+  it('declares one shared projection descriptor for every currently targeted nutrient', () => {
+    const registrations = createNutritionTargetPolicyRegistrations();
+    const descriptor = (policyId: string) => registrations.find(({ policyId: id }) => id === policyId)?.evaluationRule;
+
+    expect(descriptor('general-nutrition-sodium-v1')).toEqual(expect.objectContaining({ measurementKey: 'sodium', unit: 'mg', kind: 'upper-limit' }));
+    expect(descriptor('general-nutrition-saturated-fat-v1')).toEqual(expect.objectContaining({ measurementKey: 'saturated-fat', unit: 'g', kind: 'upper-limit' }));
+    expect(descriptor('general-nutrition-added-sugars-v1')).toEqual(expect.objectContaining({ measurementKey: 'added-sugar', unit: 'g', kind: 'upper-limit' }));
+    expect(descriptor('general-nutrition-fiber-v1')).toEqual(expect.objectContaining({ measurementKey: 'fiber', unit: 'g', kind: 'lower-target' }));
+    expect(descriptor('general-protein-baseline-v1')).toEqual(expect.objectContaining({ measurementKey: 'protein', unit: 'g', kind: 'lower-target' }));
+    expect(descriptor('diabetes-carbohydrate-target-v1')).toEqual(expect.objectContaining({ measurementKey: 'carbohydrates', unit: 'g', kind: 'lower-target' }));
+    expect(descriptor('ckd-potassium-v1')).toEqual(expect.objectContaining({ measurementKey: 'potassium', unit: 'mg', kind: 'upper-limit' }));
+    expect(descriptor('ckd-phosphorus-v1')).toEqual(expect.objectContaining({ measurementKey: 'phosphorus', unit: 'mg', kind: 'upper-limit' }));
+  });
 });

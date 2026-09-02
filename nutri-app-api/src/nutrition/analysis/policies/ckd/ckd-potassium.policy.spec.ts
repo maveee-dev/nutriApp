@@ -16,10 +16,26 @@ describe('CkdPotassiumPolicy', () => {
     expect(result.provenance?.applicability?.laboratory).toEqual(expect.objectContaining({ testCode: 'potassium', unit: 'mmol/L' }));
   });
 
-  it('defers missing, stale, and unsupported evidence explicitly', () => {
-    expect(policy.calculate(['ckd'], null, finding)).toEqual({ potassiumMilligrams: null, provenance: null, deferredPolicy: null });
+  it('reports an informational limitation when potassium is recorded without an individualized target', () => {
+    expect(policy.calculate(['ckd'], null, finding)).toMatchObject({
+      potassiumMilligrams: null,
+      provenance: null,
+      deferredPolicy: {
+        policyId: 'ckd-potassium-v1',
+        reason: 'missing-individualized-potassium-target',
+      },
+    });
+    expect(policy.calculate(['ckd'], null, null)).toEqual({ potassiumMilligrams: null, provenance: null, deferredPolicy: null });
+  });
+
+  it('defers missing, stale, and unsupported evidence explicitly when an individualized target exists', () => {
     expect(policy.calculate(['ckd'], target, null).deferredPolicy?.reason).toBe('missing-potassium');
     expect(policy.calculate(['ckd'], target, { ...finding, collectedAt: new Date('2024-01-01T00:00:00Z') }, new Date('2026-08-22T00:00:00Z')).deferredPolicy?.reason).toBe('stale-potassium');
     expect(policy.calculate(['ckd'], { ...target, kind: 'lower-target' }, finding).deferredPolicy?.reason).toBe('unsupported-potassium-target-kind');
+  });
+
+  it('defers non-positive or non-numeric individualized limits', () => {
+    expect(policy.calculate(['ckd'], { ...target, targetValue: '0' }, finding).deferredPolicy?.reason).toBe('invalid-potassium-target-value');
+    expect(policy.calculate(['ckd'], { ...target, targetValue: 'not-a-number' }, finding).deferredPolicy?.reason).toBe('invalid-potassium-target-value');
   });
 });

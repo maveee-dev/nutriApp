@@ -42,13 +42,16 @@ export class LaboratoryResultsService {
       try {
         return { finding: this.interpreter.interpret(result), failureReason: null, failureExplanation: null };
       } catch (error) {
-        if (failureReason != null && failureReason !== 'no-egfr-found') continue;
         if (error instanceof InvalidLaboratoryUnitError) {
-          failureReason = 'invalid-egfr-unit';
-          failureExplanation = 'The latest eGFR result uses an unsupported unit.';
+          if (failureReason == null || failureReason === 'no-egfr-found') {
+            failureReason = 'invalid-egfr-unit';
+            failureExplanation = 'The latest eGFR result uses an unsupported unit.';
+          }
         } else if (error instanceof InvalidLaboratoryValueError) {
-          failureReason = 'invalid-egfr-value';
-          failureExplanation = 'The latest eGFR result contains an invalid numeric value.';
+          if (failureReason == null || failureReason === 'no-egfr-found') {
+            failureReason = 'invalid-egfr-value';
+            failureExplanation = 'The latest eGFR result contains an invalid numeric value.';
+          }
         }
         // Ignore invalid laboratory entries and continue to the next latest result.
       }
@@ -65,11 +68,15 @@ export class LaboratoryResultsService {
         return { finding: this.interpreter.interpret(result), failureReason: null, failureExplanation: null };
       } catch (error) {
         if (error instanceof InvalidLaboratoryUnitError) {
-          failureReason = 'invalid-potassium-unit';
-          failureExplanation = 'The latest serum potassium result uses an unsupported unit.';
+          if (failureReason == null || failureReason === 'no-potassium-found') {
+            failureReason = 'invalid-potassium-unit';
+            failureExplanation = 'The latest serum potassium result uses an unsupported unit.';
+          }
         } else if (error instanceof InvalidLaboratoryValueError) {
-          failureReason = 'invalid-potassium-value';
-          failureExplanation = 'The latest serum potassium result contains an invalid numeric value.';
+          if (failureReason == null || failureReason === 'no-potassium-found') {
+            failureReason = 'invalid-potassium-value';
+            failureExplanation = 'The latest serum potassium result contains an invalid numeric value.';
+          }
         }
       }
     }
@@ -85,11 +92,15 @@ export class LaboratoryResultsService {
         return { finding: this.interpreter.interpret(result), failureReason: null, failureExplanation: null };
       } catch (error) {
         if (error instanceof InvalidLaboratoryUnitError) {
-          failureReason = 'invalid-phosphorus-unit';
-          failureExplanation = 'The latest serum phosphorus result uses an unsupported unit.';
+          if (failureReason == null || failureReason === 'no-phosphorus-found') {
+            failureReason = 'invalid-phosphorus-unit';
+            failureExplanation = 'The latest serum phosphorus result uses an unsupported unit.';
+          }
         } else if (error instanceof InvalidLaboratoryValueError) {
-          failureReason = 'invalid-phosphorus-value';
-          failureExplanation = 'The latest serum phosphorus result contains an invalid numeric value.';
+          if (failureReason == null || failureReason === 'no-phosphorus-found') {
+            failureReason = 'invalid-phosphorus-value';
+            failureExplanation = 'The latest serum phosphorus result contains an invalid numeric value.';
+          }
         }
       }
     }

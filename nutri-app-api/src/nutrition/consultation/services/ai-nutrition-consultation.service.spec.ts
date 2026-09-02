@@ -137,4 +137,21 @@ describe('AiNutritionConsultationService', () => {
     expect(result.aiExplanation).toBe('Based on the supplied evidence, this food fits your active guidance.');
     expect(result.recommendations).toBe(deterministicResponse.recommendations);
   });
+
+  it('rejects an AI explanation that restates a different authoritative recipe score', async () => {
+    const provider = { explain: jest.fn().mockResolvedValue({ answer: 'This recipe scores 86/100.', providerId: 'test-provider-v1' }) };
+    const deterministicResponse = {
+      ...deterministic,
+      answer: 'Deterministic recipe answer.',
+      foodResolution: { status: 'resolved' as const, query: 'Can I eat my chicken adobo?', candidates: [{ kind: 'approved-recipe' as const, recipeId: 'recipe-1', recipeVersionId: 'version-1', displayName: 'Chicken Adobo', variantLabel: null, matchType: 'recipe-exact' as const, confidence: 'high' as const }] },
+      recipeEvaluation: { evaluation: { score: 84 } },
+    };
+    const service = new AiNutritionConsultationService(
+      { consult: jest.fn().mockResolvedValue(deterministicResponse) } as never,
+      provider,
+      new ConsultationIntentRouter(),
+    );
+
+    await expect(service.consult('user-1', 'Can I eat my chicken adobo?')).resolves.toBe(deterministicResponse);
+  });
 });

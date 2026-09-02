@@ -35,12 +35,14 @@ import { createDailyNutritionProjectionRegistrations } from './analysis/services
 import { DAILY_NUTRITION_PROJECTION_REGISTRATIONS } from './analysis/services/daily-nutrition-projection.tokens.js';
 import { NUTRITION_EVIDENCE_PROVIDERS } from './analysis/services/nutrition-evidence.tokens.js';
 import { DiabetesNutritionEvidenceProvider, IndividualizedTargetsNutritionEvidenceProvider, RenalNutritionEvidenceProvider } from './analysis/services/nutrition-evidence.providers.js';
-import { IndividualizedNutritionTargetEvidenceRepository } from './analysis/repositories/individualized-nutrition-target-evidence.repository.js';
+import { NutritionTargetsModule } from './targets/nutrition-targets.module.js';
+import { HealthProfileModule } from '../health-profile/health-profile.module.js';
 import { NutritionConsultationController } from './consultation/controllers/nutrition-consultation.controller.js';
 import { NutritionConsultationService } from './consultation/services/nutrition-consultation.service.js';
 import { FoodRecognitionController } from './food-recognition/controllers/food-recognition.controller.js';
 import { FoodRecognitionService } from './food-recognition/services/food-recognition.service.js';
 import { NoopFoodRecognitionProvider } from './food-recognition/services/noop-food-recognition.provider.js';
+import { GeminiFoodRecognitionProvider } from './food-recognition/providers/gemini-food-recognition.provider.js';
 import { FOOD_RECOGNITION_PROVIDER } from './food-recognition/types/food-recognition.tokens.js';
 import { AiNutritionConsultationService } from './consultation/services/ai-nutrition-consultation.service.js';
 import { AiNutritionConsultationProviderAdapter } from './consultation/services/ai-nutrition-consultation-provider.adapter.js';
@@ -57,9 +59,11 @@ import { ShadowDailyAggregateEvaluationService } from './planning/shadow/service
 import { ShadowPlanningProfilerService } from './planning/shadow/services/shadow-planning-profiler.service.js';
 import { ShadowClinicalFixtureValidationService } from './planning/shadow/validation/shadow-clinical-validation.service.js';
 import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-historical-replay.service.js';
+import { NutritionInsightService } from './insights/nutrition-insight.service.js';
+import { DailyTrackerModule } from './daily-tracker/daily-tracker.module.js';
 
 @Module({
-  imports: [FoodsModule, RecipesModule, MealTemplatesModule, NutrientsModule, CategoriesModule, ServingsModule, ProfilesModule, ConditionsModule, LaboratoryModule, DialysisModule, AiModule],
+  imports: [FoodsModule, RecipesModule, DailyTrackerModule, MealTemplatesModule, NutrientsModule, CategoriesModule, ServingsModule, ProfilesModule, ConditionsModule, LaboratoryModule, DialysisModule, AiModule, NutritionTargetsModule, HealthProfileModule],
   controllers: [NutritionAnalysisController, FoodEvaluationController, RecommendationsController, NutritionConsultationController, FoodRecognitionController, MealPlanningController, RecipesController, MealTemplatesController],
   providers: [
     NutritionAnalysisRepository,
@@ -69,7 +73,6 @@ import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-h
     NutritionTargetResolver,
     NutritionPolicyService,
     DiabetesCarbohydrateTargetRepository,
-    IndividualizedNutritionTargetEvidenceRepository,
     DiabetesNutritionEvidenceProvider,
     RenalNutritionEvidenceProvider,
     IndividualizedTargetsNutritionEvidenceProvider,
@@ -105,9 +108,11 @@ import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-h
     ShadowPlanningProfilerService,
     ShadowClinicalFixtureValidationService,
     ShadowHistoricalReplayService,
+    NutritionInsightService,
     RecipeEvaluationService,
     NoopFoodRecognitionProvider,
-    { provide: FOOD_RECOGNITION_PROVIDER, useExisting: NoopFoodRecognitionProvider },
+    GeminiFoodRecognitionProvider,
+    { provide: FOOD_RECOGNITION_PROVIDER, useExisting: GeminiFoodRecognitionProvider },
     AiNutritionConsultationService,
     AiNutritionConsultationProviderAdapter,
     ConsultationIntentRouter,
@@ -118,6 +123,6 @@ import { ShadowHistoricalReplayService } from './planning/shadow/replay/shadow-h
       useExisting: AiNutritionConsultationProviderAdapter,
     },
   ],
-  exports: [FoodEvaluationService, RecommendationService],
+  exports: [FoodEvaluationService, RecommendationService, NutritionAnalysisService, NutritionInsightService, RecipeEvaluationService],
 })
 export class NutritionModule {}

@@ -163,4 +163,124 @@ describe('FoodEntityResolver', () => {
 
     expect(recipesService.findMany).not.toHaveBeenCalled();
   });
+
+  it('prefers the current private recipe for an explicit personal-recipe question', async () => {
+    const foodsService = {
+      findMany: jest.fn().mockResolvedValue({ items: [food('food-1', 'Chicken Adobo')], meta: {} }),
+    };
+    const recipesService = {
+      findMany: jest.fn().mockResolvedValue([{
+        id: 'recipe-1',
+        versions: [
+          { id: 'recipe-version-2', version: 2, name: 'Chicken Adobo', approvalStatus: 'APPROVED', cuisine: 'Filipino' },
+          { id: 'recipe-version-1', version: 1, name: 'Chicken Adobo', approvalStatus: 'APPROVED', cuisine: 'Filipino' },
+        ],
+      }]),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, recipesService as never);
+
+    await expect(resolver.resolve('user-1', 'Can I eat my chicken adobo recipe?')).resolves.toMatchObject({
+      status: 'resolved',
+      candidates: [{ kind: 'approved-recipe', recipeId: 'recipe-1', recipeVersionId: 'recipe-version-2' }],
+    });
+  });
+
+  it('returns duplicate personal recipes as stable, distinguishable clarification choices', async () => {
+    const foodsService = {
+      findMany: jest.fn().mockResolvedValue({ items: [], meta: {} }),
+    };
+    const recipesService = {
+      findOwnedByUser: jest.fn().mockResolvedValue([
+        {
+          id: 'recipe-1',
+          ownerId: 'user-1',
+          versions: [{
+            id: 'version-1', version: 1, name: 'Chicken Adobo', approvalStatus: 'APPROVED', yieldServings: '4', cuisine: null,
+            components: [{ foodDisplayName: 'Chicken Breast' }, { foodDisplayName: 'Soy Sauce' }],
+          }],
+        },
+        {
+          id: 'recipe-2',
+          ownerId: 'user-1',
+          versions: [{
+            id: 'version-2', version: 1, name: 'Chicken Adobo', approvalStatus: 'APPROVED', yieldServings: '6', cuisine: null,
+            components: [{ foodDisplayName: 'Chicken Thigh' }, { foodDisplayName: 'Coconut Milk' }],
+          }],
+        },
+      ]),
+      findMany: jest.fn(),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, recipesService as never);
+
+    const result = await resolver.resolve('user-1', 'Can I eat my Chicken Adobo?');
+
+    expect(result.status).toBe('ambiguous');
+    expect(recipesService.findOwnedByUser).toHaveBeenCalledWith('user-1');
+    expect(result.clarification?.choices).toEqual([
+      expect.objectContaining({ stableId: 'version-1', recipeId: 'recipe-1', recipeYieldServings: '4', recipeIngredientNames: ['Chicken Breast', 'Soy Sauce'] }),
+      expect.objectContaining({ stableId: 'version-2', recipeId: 'recipe-2', recipeYieldServings: '6', recipeIngredientNames: ['Chicken Thigh', 'Coconut Milk'] }),
+    ]);
+  });
+
+  it('uses the recognition-only ranking context for image labels', async () => {
+    const foodsService = {
+      findMany: jest.fn().mockResolvedValue({ items: [food('food-1', 'Banana')], meta: {} }),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
+
+    await resolver.resolveFoodLabel('banana');
+
+    expect(foodsService.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'banana' }),
+      'food-recognition',
+    );
+  });
+
+  it('resolves a specific recognition label against canonical tokens after catalog ranking', async () => {
+    const foodsService = {
+      findMany: jest.fn(async (input: { search?: string }) => ({
+        items: input.search === 'white rice'
+          ? [
+              food('rice-cooked', 'White Rice', { name: 'Rice, white, cooked' }),
+              food('rice-raw', 'White Rice', { name: 'Rice, white, raw' }),
+            ]
+          : [],
+        meta: {},
+      })),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
+
+    await expect(resolver.resolveFoodLabel('Cooked White Rice')).resolves.toMatchObject({
+      status: 'resolved',
+      candidates: [{
+        foodId: 'rice-cooked',
+        displayName: 'White Rice',
+        confidence: 'high',
+        matchType: 'display-exact',
+      }],
+    });
+  });
+
+  it('uses the full recognition label before falling back to broader food phrases', async () => {
+    const foodsService = {
+      findMany: jest.fn(async (input: { search?: string }) => ({
+        items: input.search === 'cooked white rice'
+          ? [food('rice-cooked', 'Rice', { name: 'Rice, white, cooked' })]
+          : input.search === 'white rice'
+            ? [food('rice-raw', 'White Rice', { name: 'Rice, white, raw' })]
+            : [],
+        meta: {},
+      })),
+    };
+    const resolver = new FoodEntityResolver(foodsService as never, { findMany: jest.fn() } as never);
+
+    await expect(resolver.resolveFoodLabel('Cooked White Rice')).resolves.toMatchObject({
+      status: 'resolved',
+      candidates: [{
+        foodId: 'rice-cooked',
+        matchType: 'canonical-token-match',
+        confidence: 'high',
+      }],
+    });
+  });
 });

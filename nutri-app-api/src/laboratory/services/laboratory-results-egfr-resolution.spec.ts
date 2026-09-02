@@ -34,4 +34,16 @@ describe('LaboratoryResultsService eGFR evidence resolution', () => {
     repository.findMany = jest.fn().mockResolvedValue([result({ value: 'not-a-number' })]);
     await expect(service.findLatestEgfrEvidence('user-1')).resolves.toMatchObject({ finding: null, failureReason: 'invalid-egfr-value' });
   });
+
+  it('continues to an older valid eGFR when the newest row is invalid', async () => {
+    repository.findMany = jest.fn().mockResolvedValue([
+      result({ id: 'new-invalid', value: 'not-a-number', collectedAt: new Date('2026-08-20T00:00:00.000Z') }),
+      result({ id: 'older-valid', value: '42', collectedAt: new Date('2026-08-19T00:00:00.000Z') }),
+    ]);
+
+    await expect(service.findLatestEgfrEvidence('user-1')).resolves.toMatchObject({
+      finding: expect.objectContaining({ value: '42' }),
+      failureReason: null,
+    });
+  });
 });

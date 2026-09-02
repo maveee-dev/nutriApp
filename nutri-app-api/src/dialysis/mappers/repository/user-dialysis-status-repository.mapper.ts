@@ -7,6 +7,8 @@ export class UserDialysisStatusRepositoryMapper {
       userId: row.userId,
       status: row.status,
       modality: row.modality,
+      frequency: row.frequency,
+      schedule: row.schedule,
       effectiveAt: row.effectiveAt,
       reportedAt: row.reportedAt,
       updatedAt: row.updatedAt,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,9 +18,14 @@ import { useNutritionConsultation } from '@/features/consultation/hooks/useNutri
 import { Trash2, Sparkles, Search, Camera, Coffee, Sun, Moon, Apple, Plus, Utensils, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import type { MealType } from '../types/meals.types';
 import type { FoodDetail, Serving } from '@/features/foods/types/foods.types';
-import { preferredServing } from '@/features/foods/utils/serving';
+import { formatServingLabel, preferredServing } from '@/features/foods/utils/serving';
 import { format } from 'date-fns';
 import { mergeMealDraftItem } from '../utils/mealDraft';
+import { optimizeImage } from '@/features/food-recognition/image-optimizer';
+import { useRecipes } from '@/features/recipes/hooks/useRecipes';
+import type { Recipe } from '@/features/recipes/types/recipe.types';
+import { recipeMatchesQuery } from '@/features/recipes/recipeSearch';
+import { useCreateDailyNutritionEntryMutation } from '@/features/daily-tracker/hooks/useDailyTracker';
 
 export interface MealLogModalProps {
   isOpen: boolean;
@@ -53,6 +58,8 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   const [consumedAt, setConsumedAt] = useState<string>(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [searchQuery, setSearchQuery] = useState('');
   const [stagedItems, setStagedItems] = useState<StagedMealItem[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipeServings, setRecipeServings] = useState('1');
   const [inputMode, setInputMode] = useState<'search' | 'scan'>('search');
   const [recognitionImage, setRecognitionImage] = useState<string | null>(null);
   const [recognitionMimeType, setRecognitionMimeType] = useState('image/jpeg');
@@ -67,6 +74,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
 
   // Search Foods Query
   const { data: foodsData, isLoading: isFoodsLoading } = useFoods({ search: searchQuery, limit: 15 });
+  const { data: recipesData, isLoading: isRecipesLoading } = useRecipes();
   const foodRecognition = useFoodRecognition();
   const dailyDate = format(new Date(), 'yyyy-MM-dd');
   const { data: completionNutrition, isLoading: isCompletionNutritionLoading } = useDailyNutrition(dailyDate);
@@ -77,9 +85,15 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
     setIsComplete(true);
     completionConsultation.mutate({ question: 'How did this meal affect my goals?', date: dailyDate });
   });
+  const createRecipeEntryMutation = useCreateDailyNutritionEntryMutation(() => {
+    setIsComplete(true);
+    completionConsultation.mutate({ question: 'How did this meal affect my goals?', date: dailyDate });
+  });
 
   const resetForm = () => {
     setStagedItems([]);
+    setSelectedRecipe(null);
+    setRecipeServings('1');
     setSearchQuery('');
     setEvaluatingItem(null);
     setInputMode('search');
@@ -150,6 +164,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   const handleSelectFood = (foodId: string, foodName: string, categoryName: string, foodDisplayName?: string, foodVariantLabel?: string | null) => {
     const localId = Math.random().toString(36).substring(2, 9);
 
+    setSelectedRecipe(null);
     // Create optimistic staged item
     const newItem: StagedMealItem = {
       id: localId,
@@ -173,6 +188,13 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
 
     // Fetch full food details for servings and nutrients
     fetchFoodDetails(localId, foodId);
+  };
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setRecipeServings('1');
+    setSearchQuery('');
+    setStagedItems([]);
   };
 
   const handleServingChange = (localId: string, servingId: string) => {
@@ -211,6 +233,17 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedRecipe) {
+      const version = selectedRecipe.versions[0];
+      if (!version || parseFloat(recipeServings) <= 0) return;
+      createRecipeEntryMutation.mutate({
+        date: format(new Date(consumedAt), 'yyyy-MM-dd'),
+        recipeId: selectedRecipe.id,
+        recipeVersionId: version.id,
+        servings: recipeServings,
+      });
+      return;
+    }
     if (stagedItems.length === 0) return;
 
     // Build payload with valid serving items
@@ -231,8 +264,9 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   };
 
   // Validation logic for submit button
-  const canSubmit =
-    stagedItems.length > 0 &&
+  const canSubmit = selectedRecipe
+    ? Boolean(selectedRecipe.versions[0]) && parseFloat(recipeServings) > 0
+    : stagedItems.length > 0 &&
     stagedItems.every(
       (item) =>
         !item.isLoadingDetails &&
@@ -242,13 +276,20 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
     );
 
   const searchResults = foodsData?.items || [];
+  const recipeSearchResults = useMemo(() => {
+    return (recipesData ?? []).filter((recipe) => recipeMatchesQuery(recipe, searchQuery));
+  }, [recipesData, searchQuery]);
 
-  const handleRecognitionFile = (file?: File) => {
+  const handleRecognitionFile = async (file?: File) => {
     if (!file) return;
-    setRecognitionMimeType(file.type || 'image/jpeg');
-    const reader = new FileReader();
-    reader.onload = () => setRecognitionImage(String(reader.result).split(',')[1] ?? null);
-    reader.readAsDataURL(file);
+    try {
+      const optimized = await optimizeImage(file);
+      setRecognitionMimeType(optimized.mimeType);
+      setRecognitionImage(optimized.imageData);
+    } catch {
+      setRecognitionImage(null);
+      setRecognitionMimeType('image/jpeg');
+    }
   };
 
   const handleRecognize = () => {
@@ -267,7 +308,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-primary)' }}><CheckCircle2 size={24} /><strong>Nice work — your meal is part of today’s progress.</strong></div>
           {isCompletionNutritionLoading ? <LoadingSpinner label="Refreshing today’s goals..." size={20} /> : completionNutrition && <div style={{ padding: 12, backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)' }}><strong>Today’s progress updated</strong><p style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{completionNutrition.mealCount} meals logged. Your goals and evidence-backed guidance now include this meal.</p></div>}
           {completionRecommendations?.recommendations.slice(0, 2).map((recommendation) => <div key={recommendation.id} style={{ padding: 12, border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}><strong>{recommendation.title}</strong><p style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{recommendation.message}</p></div>)}
-          {completionConsultation.isPending ? <LoadingSpinner label="Preparing a friendly explanation..." size={20} /> : completionConsultation.data && <div style={{ padding: 12, backgroundColor: 'var(--color-primary-subtle)', borderRadius: 'var(--radius-md)' }}><strong>Coach note</strong><p style={{ marginTop: 4, fontSize: '0.9rem', lineHeight: 1.5 }}>{completionConsultation.data.answer}</p></div>}
+          {completionConsultation.isPending ? <LoadingSpinner label="Preparing a friendly explanation..." size={20} /> : completionConsultation.data && <div style={{ padding: 12, backgroundColor: 'var(--color-primary-subtle)', borderRadius: 'var(--radius-md)' }}><strong>Coach note</strong><p style={{ marginTop: 4, fontSize: '0.9rem', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{completionConsultation.data.answer}</p></div>}
           <Button variant="primary" onClick={handleClose}>Done</Button>
         </div>
       </Modal>
@@ -313,17 +354,13 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
           {/* Food input: search or recognition */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <SegmentedControl<'search' | 'scan'> value={inputMode} onChange={setInputMode} options={[{ value: 'search', label: 'Search', icon: <Search size={15} /> }, { value: 'scan', label: 'Scan image', icon: <Camera size={15} /> }]} />
-            {inputMode === 'search' ? <><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Search & Add Foods</label><Input placeholder="Type to search foods (e.g. Chicken, Rice, Banana)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<Search size={16} />} autoComplete="off" /></> : <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }}><Camera size={16} /> Choose image<input type="file" accept="image/*" capture="environment" hidden onChange={(event) => handleRecognitionFile(event.target.files?.[0])} /></label><Button type="button" size="sm" variant="primary" onClick={handleRecognize} disabled={!recognitionImage || foodRecognition.isPending}>Recognize</Button>{recognitionImage && <Badge variant="success">Image ready</Badge>}</div>}
+            {inputMode === 'search' ? <><label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Search & Add Foods or Recipes</label><Input placeholder="Type to search foods or saved recipes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<Search size={16} />} autoComplete="off" /></> : <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-full)', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }}><Camera size={16} /> Choose image<input type="file" accept="image/*" capture="environment" hidden onChange={(event) => handleRecognitionFile(event.target.files?.[0])} /></label><Button type="button" size="sm" variant="primary" onClick={handleRecognize} disabled={!recognitionImage || foodRecognition.isPending}>Recognize</Button>{recognitionImage && <Badge variant="success">Image ready</Badge>}</div>}
 
-            {inputMode === 'scan' && foodRecognition.isPending && <LoadingSpinner label="Finding foods..." size={18} />}
+            {inputMode === 'scan' && foodRecognition.isPending && <LoadingSpinner label="Recognizing foods..." size={18} />}
             {inputMode === 'scan' && foodRecognition.data?.candidates.map((candidate) => <div key={`${candidate.label}-${candidate.foodId ?? 'unmatched'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-sm)' }}><span><strong>{candidate.foodDisplayName ?? candidate.foodName ?? candidate.label}</strong>{candidate.foodVariantLabel && <small style={{ display: 'block', color: 'var(--text-muted)' }}>{candidate.foodVariantLabel}</small>}<small style={{ display: 'block', color: 'var(--text-muted)' }}>{Math.round(candidate.confidence * 100)}% · {candidate.nutritionSource === 'canonical-database' ? 'Canonical nutrition' : 'Review required'}</small></span>{candidate.foodId ? <Button type="button" size="sm" variant="secondary" onClick={() => handleSelectFood(candidate.foodId!, candidate.foodName ?? candidate.label, 'Recognized food', candidate.foodDisplayName ?? undefined, candidate.foodVariantLabel)}>Confirm</Button> : <Badge variant="warning">Replace in catalog</Badge>}</div>)}
 
             {/* Live Search Dropdown */}
-            {isFoodsLoading && searchQuery ? (
-              <div style={{ padding: '8px 0' }}>
-                <LoadingSpinner label="Searching food catalog..." size={18} />
-              </div>
-            ) : searchQuery && searchResults.length > 0 ? (
+            {searchQuery && (searchResults.length > 0 || recipeSearchResults.length > 0 || isFoodsLoading || isRecipesLoading) ? (
               <div
                 style={{
                   maxHeight: '180px',
@@ -338,6 +375,8 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                   boxShadow: 'var(--shadow-md)',
                 }}
               >
+                {(isFoodsLoading || isRecipesLoading) && <div style={{ padding: '6px' }}><LoadingSpinner label="Searching foods and recipes..." size={18} /></div>}
+                {searchResults.length > 0 && <p style={{ padding: '4px 6px', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>Catalog foods</p>}
                 {searchResults.map((food) => (
                   <button
                     key={food.id}
@@ -363,23 +402,26 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Plus size={16} color="var(--color-primary)" />
-                      <span><span style={{ display: 'block' }}>{food.displayName ?? food.name}</span>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 500 }}>{food.variantLabel}</small>}</span>
+                      <span><span style={{ display: 'block' }}>{food.displayName ?? food.name}</span>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 500 }}>{food.variantLabel}</small>}{food.displayName && food.name !== food.displayName && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 400 }}>Catalog detail: {food.name}</small>}</span>
                     </div>
                     <Badge variant="neutral" size="sm">
                       {food.category.name}
                     </Badge>
                   </button>
                 ))}
+                {recipeSearchResults.length > 0 && <div style={{ borderTop: '1px solid var(--border-light)', marginTop: 4, paddingTop: 6 }}><p style={{ padding: '4px 6px', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>Saved recipes</p>{recipeSearchResults.map((recipe) => { const version = recipe.versions[0]; return <button key={recipe.id} type="button" onClick={() => handleSelectRecipe(recipe)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', backgroundColor: 'transparent', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}><strong>{version?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{recipe.ownerId == null ? 'Shared recipe' : 'My recipe'} · Makes {version?.yieldServings ?? '—'} servings</small></button>; })}</div>}
               </div>
-            ) : searchQuery && !isFoodsLoading && searchResults.length === 0 ? (
+            ) : searchQuery && !isFoodsLoading && !isRecipesLoading && searchResults.length === 0 && recipeSearchResults.length === 0 ? (
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '4px 2px' }}>
                 No foods found matching "{searchQuery}".
               </p>
             ) : null}
           </div>
 
+          {selectedRecipe && <div style={{ padding: 14, backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--border-light)' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}><div><strong style={{ display: 'block', fontSize: '0.98rem' }}>{selectedRecipe.versions[0]?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 3 }}>Recipe · Makes {selectedRecipe.versions[0]?.yieldServings ?? '—'} servings</small></div><Button type="button" size="sm" variant="secondary" onClick={() => setSelectedRecipe(null)}>Choose another</Button></div><div style={{ marginTop: 12 }}><label style={{ fontSize: '0.8125rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>How much did you eat?</label><QuantityStepper value={recipeServings} onChange={setRecipeServings} min={0.25} step={0.25} readOnly={false} unitLabel="serving(s)" /></div><p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: 8 }}>Your entry will use this recipe&apos;s selected approved version and serving multiplier.</p></div>}
+
           {/* Staged Items / Meal List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {!selectedRecipe && <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Meal Items ({stagedItems.length})
@@ -517,7 +559,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                                 onChange={(e) => handleServingChange(item.id, e.target.value)}
                                 options={item.servings.map((s) => ({
                                   value: s.id,
-                                  label: `${s.name} (${s.grams} g)`,
+                              label: formatServingLabel(s),
                                 }))}
                               />
                             ) : selectedServing ? (
@@ -532,7 +574,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                                   color: 'var(--text-primary)',
                                 }}
                               >
-                                1 Portion = {selectedServing.name} ({selectedServing.grams} g)
+                                Serving: {formatServingLabel(selectedServing)}
                               </div>
                             ) : null}
                           </div>
@@ -571,7 +613,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                               </span>
                               {selectedServing && (
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                                  ({qtyNum} × {selectedServing.grams}g)
+                                  ({qtyNum} × {formatServingLabel(selectedServing)})
                                 </span>
                               )}
                             </div>
@@ -598,7 +640,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                 })}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Modal Actions & Submit Feedback */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'var(--space-xs)' }}>
@@ -610,10 +652,10 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                 type="submit"
                 variant="primary"
                 disabled={!canSubmit}
-                isLoading={createMealMutation.isPending}
+                isLoading={selectedRecipe ? createRecipeEntryMutation.isPending : createMealMutation.isPending}
                 style={{ flex: 2 }}
               >
-                Log Meal ({stagedItems.length} {stagedItems.length === 1 ? 'item' : 'items'})
+                {selectedRecipe ? 'Add recipe to intake' : `Log Meal (${stagedItems.length} ${stagedItems.length === 1 ? 'item' : 'items'})`}
               </Button>
             </div>
 

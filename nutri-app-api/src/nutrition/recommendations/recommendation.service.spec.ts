@@ -30,9 +30,12 @@ describe('RecommendationService', () => {
       'diabetes-carbohydrate-adherence-recommendation',
       'diabetes-historical-carbohydrate-adherence-recommendation',
       'general-nutrition-added-sugar-recommendation',
+      'general-nutrition-saturated-fat-recommendation',
       'general-nutrition-cholesterol-recommendation',
       'protein-condition-target-recommendation',
       'carbohydrates-condition-target-recommendation',
+      'potassium-condition-target-recommendation',
+      'phosphorus-condition-target-recommendation',
       'meal-assessment-recommendation',
       'deferred-policy-recommendation',
     ]);
@@ -134,6 +137,71 @@ describe('RecommendationService', () => {
     ]));
   });
 
+  it('composes general saturated-fat guidance from the same food snapshot', () => {
+    const result = new RecommendationService().recommend('user-1', {
+      ...snapshot(),
+      payload: {
+        ...snapshot().payload,
+        reasons: [{
+          code: 'saturated-fat-above-target',
+          direction: 'negative' as const,
+          nutrient: 'saturated-fat',
+          measuredValue: '25',
+          targetValue: '20',
+          explanation: 'This portion is above the general saturated-fat limit.',
+        }],
+        contributions: [{
+          nutrient: 'saturated-fat',
+          amount: '25',
+          targetValue: '20',
+          currentDailyValue: null,
+          explanation: '25 g saturated fat contribution.',
+        }],
+        targets: { sodiumMilligrams: '2300', proteinGrams: null, saturatedFatGrams: '20' },
+      },
+    }, 'current-food');
+
+    expect(result.selected.map(({ id }) => id)).toContain('general-saturated-fat-caution');
+  });
+
+  it.each([
+    ['potassium', 'potassiumMilligrams', 'ckd-potassium-v1', 'mg'],
+    ['phosphorus', 'phosphorusMilligrams', 'ckd-phosphorus-v1', 'mg'],
+  ] as const)('composes the %s condition-target guidance from the food snapshot', (nutrient, target, targetPolicyId, unit) => {
+    const result = new RecommendationService().recommend('user-1', {
+      ...snapshot(),
+      payload: {
+        ...snapshot().payload,
+        reasons: [{
+          code: `${nutrient}-above-target`,
+          direction: 'negative' as const,
+          nutrient,
+          measuredValue: '900',
+          targetValue: '800',
+          explanation: `This portion exceeds the ${nutrient} target.`,
+        }],
+        contributions: [{
+          nutrient,
+          unit,
+          amount: '900',
+          targetValue: '800',
+          currentDailyValue: null,
+          explanation: `${nutrient} contribution.`,
+        }],
+        targets: { sodiumMilligrams: '2300', proteinGrams: null, [target]: '800' },
+        targetProvenance: [{
+          target,
+          policyId: targetPolicyId,
+          source: 'CKD guidance',
+          version: 'v1',
+          explanation: `Approved ${nutrient} target.`,
+        }],
+      },
+    }, 'current-food');
+
+    expect(result.selected.map(({ id }) => id)).toContain(`${nutrient}-condition-target-recommendation-caution`);
+  });
+
   it('carries current snapshot evaluation metadata without recalculating it', () => {
     const result = new RecommendationService().recommend('user-1', {
       ...snapshot(),
@@ -187,6 +255,25 @@ describe('RecommendationService', () => {
         policySetFingerprint: 'policy-set-1',
         evaluationFingerprint: 'daily-fingerprint',
       },
+      dailyAdherenceByPolicy: [{
+        policyId: 'diabetes-carbohydrate-target-v1',
+        policyVersion: 'v1',
+        target: 'carbohydrateGrams',
+        measurementKey: 'carbohydrates',
+        ruleKind: 'lower-target' as const,
+        status: 'available' as const,
+        targetValue: '180',
+        consumedValue: '220',
+        remainingValue: '0',
+        exceededValue: null,
+        coveragePercentage: 100,
+        targetProvenance: null,
+        snapshotIds: ['snapshot-1'],
+        deferredPolicy: null,
+        evaluatorVersion: 'food-evaluation-v3',
+        policySetFingerprint: 'policy-set-1',
+        evaluationFingerprint: 'daily-fingerprint-by-policy',
+      }],
       mealAssessments: [{
         mealId: 'meal-1',
         status: 'evaluated' as const,
@@ -236,6 +323,7 @@ describe('RecommendationService', () => {
     ]));
     expect(result.evaluation).toMatchObject({
       dailyAdherence: expect.objectContaining({ consumedValue: '220', evaluationFingerprint: 'daily-fingerprint' }),
+      dailyAdherenceByPolicy: [expect.objectContaining({ measurementKey: 'carbohydrates', evaluationFingerprint: 'daily-fingerprint-by-policy' })],
       mealAssessments: [expect.objectContaining({ mealId: 'meal-1', evaluationFingerprint: 'meal-fingerprint' })],
       evaluatorVersions: ['food-evaluation-v3'],
       policySetFingerprints: ['policy-set-1'],

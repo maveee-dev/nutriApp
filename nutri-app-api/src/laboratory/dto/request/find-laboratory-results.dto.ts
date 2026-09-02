@@ -1,8 +1,8 @@
 import { IsIn, IsOptional } from 'class-validator';
-import { LABORATORY_TEST_CODES } from '../../types/laboratory-test-code.js';
+import { SUPPORTED_LABORATORY_TEST_CODES } from '../../types/laboratory-test-code.js';
 
 export class FindLaboratoryResultsDto {
   @IsOptional()
-  @IsIn([LABORATORY_TEST_CODES.EGFR, LABORATORY_TEST_CODES.POTASSIUM])
+  @IsIn(SUPPORTED_LABORATORY_TEST_CODES)
   testCode?: string;
 }

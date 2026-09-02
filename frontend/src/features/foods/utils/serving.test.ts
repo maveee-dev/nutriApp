@@ -1,36 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { formatDisplayNumber, preferredServing, scaleNutrientAmount, servingGrams } from './serving';
+import { formatServingLabel } from './serving';
 
-describe('preferredServing', () => {
-  it('prefers a household serving over a gram basis', () => {
-    expect(preferredServing([
-      { id: 'grams', name: '100 g', grams: '100' },
-      { id: 'medium', name: '1 medium banana', grams: '118' },
-    ])).toMatchObject({ id: 'medium', grams: '118' });
+describe('formatServingLabel', () => {
+  it('uses a household measure already supplied by the canonical serving', () => {
+    expect(formatServingLabel({ name: '1 tbsp', grams: '15' })).toBe('1 tablespoon (15 g)');
+    expect(formatServingLabel({ name: '0.25 cup', grams: '58' })).toBe('1/4 cup (58 g)');
   });
 
-  it('recognizes USDA household variants without requiring the leading quantity', () => {
-    expect(preferredServing([
-      { id: 'generic', name: 'serving', grams: '100' },
-      { id: 'egg', name: 'large egg', grams: '50' },
-    ])).toMatchObject({ id: 'egg', grams: '50' });
+  it('falls back to canonical grams when the serving name has no reliable household unit', () => {
+    expect(formatServingLabel({ name: '1 Soy Sauce', grams: '15' })).toBe('15 g serving');
+    expect(formatServingLabel({ name: '0.25 Soy Sauce', grams: '58' })).toBe('58 g serving');
   });
 
-  it('keeps a user-selectable gram serving when no canonical household serving exists', () => {
-    expect(preferredServing([{ id: 'grams', name: '100 g', grams: '100' }])).toMatchObject({ id: 'grams' });
-  });
-
-  it('returns null when a food has no serving records', () => {
-    expect(preferredServing([])).toBeNull();
-  });
-
-  it('scales database nutrients to the selected household serving for display', () => {
-    expect(scaleNutrientAmount('24.6', 118)).toBe('29.0');
-    expect(formatDisplayNumber(534.9)).toBe('535');
-    expect(formatDisplayNumber(7.02)).toBe('7.0');
-  });
-
-  it('includes the selected number of portions in the displayed gram equivalent', () => {
-    expect(servingGrams({ id: 'medium', name: '1 medium banana', grams: '118' }, 2)).toBe(236);
+  it('does not alter the canonical gram quantity used for calculation', () => {
+    const serving = { name: '1 tablespoon', grams: '15' };
+    expect(formatServingLabel(serving)).toContain(`(${serving.grams} g)`);
+    expect(serving.grams).toBe('15');
   });
 });

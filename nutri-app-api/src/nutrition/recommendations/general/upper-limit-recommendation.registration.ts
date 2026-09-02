@@ -4,7 +4,7 @@ import { RecommendationPolicyRegistration } from '../types/recommendation-regist
 import { GeneralUpperLimitRecommendationPolicy } from './upper-limit-recommendation.policy.js';
 import { GeneralUpperLimitRecommendationProjection } from './upper-limit-recommendation.types.js';
 
-export function createGeneralUpperLimitRecommendationRegistration(nutrient: 'added-sugar' | 'cholesterol', label: string, unit: string): RecommendationPolicyRegistration<GeneralUpperLimitRecommendationProjection> {
+export function createGeneralUpperLimitRecommendationRegistration(nutrient: 'added-sugar' | 'saturated-fat' | 'cholesterol', label: string, unit: string): RecommendationPolicyRegistration<GeneralUpperLimitRecommendationProjection> {
   return {
     policy: new GeneralUpperLimitRecommendationPolicy(nutrient, label, unit),
     buildContext: (baseContext) => {

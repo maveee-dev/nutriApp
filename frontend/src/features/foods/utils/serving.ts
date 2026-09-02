@@ -4,6 +4,44 @@ function isGramBased(serving: Serving): boolean {
   return /\b(?:gram|grams|g)\b|per\s*100/i.test(serving.name);
 }
 
+type ServingLabelInput = Pick<Serving, 'name' | 'grams'>;
+
+const HOUSEHOLD_UNIT_NAMES: Readonly<Record<string, string>> = {
+  tbsp: 'tablespoon',
+  tablespoons: 'tablespoon',
+  tablespoon: 'tablespoon',
+  tsp: 'teaspoon',
+  teaspoons: 'teaspoon',
+  teaspoon: 'teaspoon',
+  oz: 'ounce',
+  ounces: 'ounce',
+  ounce: 'ounce',
+};
+
+/**
+ * Formats only a household measure already present in the canonical serving
+ * name. Unrecognized names intentionally fall back to grams instead of
+ * guessing a conversion from food identity or weight.
+ */
+export function formatServingLabel(serving: ServingLabelInput): string {
+  const name = serving.name.trim().replace(/\s+/g, ' ');
+  const householdMatch = name.match(/^(\d+(?:\.\d+)?|\d+\/\d+)\s+([a-zA-Z]+)(?:\s+.*)?$/);
+  if (householdMatch) {
+    const [, amount, rawUnit] = householdMatch;
+    const normalizedUnit = rawUnit?.toLowerCase();
+    const unit = normalizedUnit == null ? undefined : HOUSEHOLD_UNIT_NAMES[normalizedUnit] ?? normalizedUnit;
+    if (unit && ['cup', 'cups', 'tablespoon', 'teaspoon', 'ounce', 'slice', 'piece', 'egg', 'serving', 'fillet', 'breast', 'leg', 'bowl', 'glass', 'can', 'packet'].includes(unit)) {
+      const displayUnit = unit === 'cups' ? 'cup' : unit.endsWith('s') ? unit.slice(0, -1) : unit;
+      const numericAmount = amount?.includes('/') ? amount : Number(amount);
+      const normalizedAmount = typeof numericAmount === 'number' && numericAmount === 0.25 ? '1/4' : String(numericAmount);
+      const plural = normalizedAmount !== '1' && !normalizedAmount.includes('/') ? 's' : '';
+      return `${normalizedAmount} ${displayUnit}${plural} (${serving.grams} g)`;
+    }
+  }
+
+  return `${serving.grams} g serving`;
+}
+
 function householdServingScore(serving: Serving): number {
   if (isGramBased(serving)) return -1;
 

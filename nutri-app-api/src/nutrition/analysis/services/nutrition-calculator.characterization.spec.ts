@@ -62,6 +62,56 @@ describe('NutritionCalculator characterization', () => {
     expect(result.some(({ name }) => name === 'Potassium')).toBe(false);
   });
 
+  it('uses one authoritative value when USDA publishes alternative carbohydrate rows', () => {
+    const result = calculator.calculate([{
+      quantity: '1',
+      servingGrams: '100',
+      nutrients: [
+        { sourceId: '1005', name: 'Carbohydrate, by difference', unit: 'g', amountPer100Grams: '10' },
+        { sourceId: '1050', name: 'Carbohydrate, by summation', unit: 'g', amountPer100Grams: '12' },
+      ],
+    }]);
+
+    expect(result).toEqual([
+      { name: 'Carbohydrate, by difference', unit: 'g', amount: '10' },
+    ]);
+  });
+
+  it('uses total dietary fiber instead of adding total and component rows', () => {
+    const result = calculator.calculate([{
+      quantity: '1',
+      servingGrams: '100',
+      nutrients: [
+        { sourceId: '1079', name: 'Fiber, total dietary', unit: 'g', amountPer100Grams: '3' },
+        { sourceId: '1082', name: 'Fiber, soluble', unit: 'g', amountPer100Grams: '1' },
+        { sourceId: '1084', name: 'Fiber, insoluble', unit: 'g', amountPer100Grams: '2' },
+      ],
+    }]);
+
+    expect(result).toEqual([
+      { name: 'Fiber, total dietary', unit: 'g', amount: '3' },
+    ]);
+  });
+
+  it('aggregates equivalent carbohydrate representations across foods under one key', () => {
+    const result = calculator.calculate([
+      {
+        quantity: '1',
+        servingGrams: '100',
+        nutrients: [{ sourceId: '1005', name: 'Carbohydrate, by difference', unit: 'g', amountPer100Grams: '10' }],
+      },
+      {
+        quantity: '1',
+        servingGrams: '100',
+        nutrients: [{ name: 'Carbohydrates', unit: 'g', amountPer100Grams: '5' }],
+      },
+    ]);
+
+    expect(result).toEqual([
+      { name: 'Carbohydrate, by difference', unit: 'g', amount: '15' },
+    ]);
+  });
+
   it('returns an empty total for an empty daily intake', () => {
     expect(calculator.calculate([])).toEqual([]);
   });

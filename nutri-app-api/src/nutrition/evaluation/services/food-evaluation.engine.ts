@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { CanonicalCalculationKernel } from '../../calculation/index.js';
+import { selectAuthoritativeNutrientInputs } from '../../analysis/services/authoritative-nutrient-input.js';
 import { NutritionTotal } from '../../analysis/types/nutrition-total.type.js';
 import {
   FoodEvaluationContribution,
@@ -36,7 +37,7 @@ export class FoodEvaluationEngine {
   evaluateWithKernel(input: FoodEvaluationInput): FoodEvaluationSource {
     const calculation = this.calculationKernel.calculateNutrients({
       servingGrams: input.portionGrams,
-      nutrients: input.nutrients.map((nutrient) => ({
+      nutrients: selectAuthoritativeNutrientInputs(input.nutrients).map((nutrient) => ({
         nutrientKey: this.canonicalNutrientName(nutrient.name),
         name: this.canonicalNutrientName(nutrient.name),
         unit: nutrient.unit,
@@ -72,7 +73,7 @@ export class FoodEvaluationEngine {
       this.evaluateUpperLimit(totals, 'cholesterol', 'cholesterol', 'mg', input.targets.cholesterolMilligrams, CHOLESTEROL_WEIGHT),
     ].filter((evaluation): evaluation is ConstraintEvaluation => evaluation !== null);
     const constraints = [
-      sodiumEvaluation,
+      sodiumEvaluation?.constraint ?? null,
       potassiumEvaluation?.constraint ?? null,
       phosphorusEvaluation?.constraint ?? null,
       ...upperLimitEvaluations,
@@ -89,6 +90,7 @@ export class FoodEvaluationEngine {
       coverage: Math.round((this.evaluatedWeight(totals, input.targets) / this.totalWeight(input.targets)) * 10000) / 100,
       reasons: constraints.flatMap((evaluation) => evaluation.reasons),
       contributions: [
+        sodiumEvaluation?.contribution ?? null,
         protein,
         potassiumEvaluation?.contribution ?? null,
         phosphorusEvaluation?.contribution ?? null,
@@ -343,7 +345,7 @@ export class FoodEvaluationEngine {
   private evaluateSodium(
     totals: readonly NutritionTotal[],
     targetValue: string,
-  ): ConstraintEvaluation | null {
+  ): { readonly constraint: ConstraintEvaluation; readonly contribution: FoodEvaluationContribution } | null {
     const sodium = this.findTotal(totals, 'sodium', 'mg');
     if (!sodium) return null;
     const measured = new Decimal(sodium.amount);
@@ -351,10 +353,7 @@ export class FoodEvaluationEngine {
     const quality = target.isZero()
       ? 0
       : Math.max(0, Math.min(1, new Decimal(1).minus(measured.div(target)).toNumber()));
-    return {
-      weight: SODIUM_WEIGHT,
-      quality,
-      reasons: [{
+    const reason: FoodEvaluationReason = {
         code: measured.gt(target) ? 'sodium-above-target' : 'sodium-contribution',
         direction: measured.gt(target) ? 'negative' : 'neutral',
         nutrient: 'sodium',
@@ -363,7 +362,21 @@ export class FoodEvaluationEngine {
         explanation: measured.gt(target)
           ? `This portion provides ${measured.toString()} mg of sodium, above the current daily limit of ${target.toString()} mg. This negatively affects compatibility because it exceeds the applicable sodium limit.`
           : `This portion provides ${measured.toString()} mg of sodium against the current daily limit of ${target.toString()} mg. This supports compatibility because it remains within the applicable sodium limit.`,
-      }],
+    };
+    return {
+      constraint: {
+        weight: SODIUM_WEIGHT,
+        quality,
+        reasons: [reason],
+      },
+      contribution: {
+        nutrient: 'sodium',
+        unit: 'mg',
+        amount: measured.toString(),
+        targetValue: target.toString(),
+        currentDailyValue: null,
+        explanation: reason.explanation,
+      },
     };
   }
 

@@ -14,10 +14,14 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(30)
+  @Max(300)
   heightCm?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(1)
+  @Max(500)
   weightKg?: number;
 
   @IsOptional()

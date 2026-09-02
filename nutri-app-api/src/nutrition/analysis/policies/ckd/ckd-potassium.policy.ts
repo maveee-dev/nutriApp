@@ -1,4 +1,5 @@
 import { CONDITION_CODES } from '../../../../conditions/types/condition-code.js';
+import { Decimal } from 'decimal.js';
 import { LaboratoryFindingSource } from '../../../../laboratory/sources/laboratory-finding.source.js';
 import { NutritionPolicyDeferralSource, NutritionTargetProvenance } from '../../types/nutrition-targets.type.js';
 import { IndividualizedNutritionTargetEvidence } from '../../types/individualized-nutrition-target-evidence.type.js';
@@ -31,18 +32,39 @@ export class CkdPotassiumPolicy {
     potassiumFailureExplanation: string | null = null,
   ): CkdPotassiumPolicyResult {
     if (!conditionCodes.includes(CONDITION_CODES.CKD)) return this.empty();
-    // There is no universal CKD potassium limit. Without an approved
-    // individualized record this policy is not applicable, rather than a
-    // deferral that could be mistaken for an omitted clinical requirement.
-    if (target == null || target.nutrientKey !== 'potassiumMilligrams') return this.empty();
+    // There is no universal CKD potassium limit. A recorded potassium result
+    // is useful context for transparency, but it must not activate scoring in
+    // the absence of an approved individualized limit. Keep this as an
+    // informational deferral: no target, rule, or target provenance is
+    // produced.
+    if (target == null || target.nutrientKey !== 'potassiumMilligrams') {
+      return potassiumFinding == null
+        ? this.empty()
+        : this.defer(
+          'missing-individualized-potassium-target',
+          'Potassium was not included in this compatibility score because no individualized potassium limit is currently available. If your healthcare team has given you a potassium restriction, use this score together with that guidance.',
+        );
+    }
     if (target.kind !== 'upper-limit') {
       return this.defer('unsupported-potassium-target-kind', 'The available individualized potassium evidence is not an approved upper limit.');
+    }
+    if (target.targetValue == null) {
+      return this.defer('invalid-potassium-target-value', 'The individualized potassium limit must include a numeric value.');
     }
     if (target.expiresAt != null && target.expiresAt <= asOf) {
       return this.defer('expired-individualized-potassium-target', 'The approved individualized potassium limit has expired and must be reviewed before CKD-specific guidance can continue.');
     }
     if (target.unit.trim().toLowerCase() !== 'mg/day') {
       return this.defer('invalid-potassium-target-unit', 'The individualized potassium limit must be expressed in mg/day.');
+    }
+    let targetValue: Decimal;
+    try {
+      targetValue = new Decimal(target.targetValue);
+    } catch {
+      return this.defer('invalid-potassium-target-value', 'The individualized potassium limit must be a positive numeric value.');
+    }
+    if (!targetValue.isFinite() || targetValue.lte(0)) {
+      return this.defer('invalid-potassium-target-value', 'The individualized potassium limit must be a positive numeric value.');
     }
     if (potassiumFinding == null) {
       return this.defer(potassiumFailureReason === 'invalid-potassium-unit' ? 'invalid-potassium-unit' : potassiumFailureReason === 'invalid-potassium-value' ? 'invalid-potassium-value' : 'missing-potassium', potassiumFailureExplanation ?? 'A current serum potassium result is required to apply the individualized CKD potassium limit.');

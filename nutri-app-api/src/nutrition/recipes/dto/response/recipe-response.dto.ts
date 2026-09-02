@@ -19,6 +19,7 @@ export class RecipeVersionResponseDto {
   version!: number;
   name!: string;
   description!: string | null;
+  preparationInstructions!: string | null;
   cuisine!: string | null;
   mealTypes!: readonly string[];
   yieldServings!: string;
@@ -38,6 +39,7 @@ export class RecipeResponseDto {
   id!: string;
   ownerId!: string | null;
   visibility!: string;
+  isFavorite!: boolean;
   createdAt!: Date;
   updatedAt!: Date;
   versions!: readonly RecipeVersionResponseDto[];

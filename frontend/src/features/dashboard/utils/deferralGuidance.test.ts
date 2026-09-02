@@ -24,9 +24,12 @@ describe('deferralGuidance', () => {
     expect(guidance.supportingText).toMatch(/approved by a clinician/i);
   });
 
-  it('does not route modality corrections to an incomplete frontend workflow', () => {
+  it('routes modality corrections to the dialysis workflow', () => {
     const guidance = deferralGuidance(deferral('missing-dialysis-modality'));
-    expect(guidance.action).toBeUndefined();
-    expect(guidance.supportingText).toMatch(/cannot currently be updated/i);
+    expect(guidance.action).toEqual({
+      label: 'Confirm dialysis type',
+      to: '/health#dialysis-status',
+    });
+    expect(guidance.supportingText).toMatch(/hemodialysis or peritoneal dialysis/i);
   });
 });

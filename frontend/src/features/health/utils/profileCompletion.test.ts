@@ -56,5 +56,37 @@ describe('buildProfileCompletionItems', () => {
       status: 'informational',
       action: undefined,
     });
+    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/has not been recorded/i);
+  });
+
+  it('distinguishes an explicit no-dialysis choice from missing status', () => {
+    const items = buildProfileCompletionItems({
+      profile: { age: 40, sex: 'MALE', heightCm: 170, weightKg: 70 } as never,
+      conditionCount: 0,
+      dialysisStatus: { status: 'INACTIVE', modality: 'UNKNOWN' } as never,
+      laboratoryResults: [],
+      deferredPolicies: [],
+    });
+
+    expect(items.find((item) => item.id === 'dialysis')).toMatchObject({
+      status: 'informational',
+      action: undefined,
+    });
+    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/not on dialysis recorded/i);
+  });
+
+  it('flags active dialysis with an unknown modality for confirmation', () => {
+    const items = buildProfileCompletionItems({
+      profile: { age: 40, sex: 'MALE', heightCm: 170, weightKg: 70 } as never,
+      conditionCount: 1,
+      dialysisStatus: { status: 'ACTIVE', modality: 'UNKNOWN' } as never,
+      laboratoryResults: [],
+      deferredPolicies: [],
+    });
+
+    expect(items.find((item) => item.id === 'dialysis')).toMatchObject({
+      status: 'attention',
+      action: { to: '/health#dialysis-status' },
+    });
   });
 });

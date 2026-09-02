@@ -100,4 +100,31 @@ describe('RecipeEvaluationService', () => {
     await expect(service.evaluate('user-1', 'recipe-1')).rejects.toBeInstanceOf(RecipeEvaluationValidationError);
     expect(foodsService.findDetailById).not.toHaveBeenCalled();
   });
+
+  it('uses the requested eaten serving multiplier for the same immutable recipe version', async () => {
+    const recipesService = { findById: jest.fn().mockResolvedValue({ id: 'recipe-1', ownerId: 'user-1', visibility: 'PRIVATE', versions: [recipeVersion()] }) };
+    const foodsService = { findDetailById: jest.fn().mockImplementation(async (id: string) => id === 'food-1' ? food('food-1', 'Chicken', '20', '100') : food('food-2', 'Rice', '5', '2')) };
+    const policyService = { loadContext: jest.fn().mockResolvedValue({ profile: null, conditionCodes: [], energyGoal: 'maintenance', asOf: new Date(), evidence: {} }), calculateFromContext: jest.fn().mockReturnValue(targetCalculation), getPolicySetFingerprint: jest.fn().mockReturnValue('policy-set-1') };
+    const service = new RecipeEvaluationService(recipesService as never, foodsService as never, policyService as never, new FoodEvaluationEngine());
+
+    const result = await service.evaluate('user-1', 'recipe-1', undefined, '2');
+
+    expect(result.recipeVersionId).toBe('recipe-version-1');
+    expect(result.portionGrams).toBe('200');
+    expect(result.components.map(({ portionGrams }) => portionGrams)).toEqual(['100', '100']);
+  });
+
+  it('can evaluate the exact immutable version selected by a resolver', async () => {
+    const current = recipeVersion();
+    const previous = { ...recipeVersion(), id: 'recipe-version-0', version: 0 };
+    const recipesService = { findById: jest.fn().mockResolvedValue({ id: 'recipe-1', ownerId: 'user-1', visibility: 'PRIVATE', versions: [current, previous] }) };
+    const foodsService = { findDetailById: jest.fn().mockImplementation(async (id: string) => id === 'food-1' ? food('food-1', 'Chicken', '20', '100') : food('food-2', 'Rice', '5', '2')) };
+    const policyService = { loadContext: jest.fn().mockResolvedValue({ profile: null, conditionCodes: [], energyGoal: 'maintenance', asOf: new Date(), evidence: {} }), calculateFromContext: jest.fn().mockReturnValue(targetCalculation), getPolicySetFingerprint: jest.fn().mockReturnValue('policy-set-1') };
+    const service = new RecipeEvaluationService(recipesService as never, foodsService as never, policyService as never, new FoodEvaluationEngine());
+
+    const result = await service.evaluate('user-1', 'recipe-1', undefined, '1', 'recipe-version-0');
+
+    expect(result.recipeVersionId).toBe('recipe-version-0');
+    expect(result.recipeVersion).toBe(0);
+  });
 });

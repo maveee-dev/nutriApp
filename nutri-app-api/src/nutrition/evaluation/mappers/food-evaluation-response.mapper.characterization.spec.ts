@@ -68,4 +68,61 @@ describe('FoodEvaluationResponseMapper characterization', () => {
       deferredPolicies: [],
     });
   });
+
+  it('preserves informational deferrals for the Food Evaluation API', () => {
+    const response = FoodEvaluationResponseMapper.toResponseDto({
+      score: 100,
+      evaluationStatus: 'evaluated',
+      coverage: 100,
+      reasons: [],
+      contributions: [{
+        nutrient: 'potassium',
+        unit: 'mg',
+        amount: '422',
+        targetValue: null,
+        currentDailyValue: null,
+        explanation: 'This portion provides 422 mg of potassium.',
+      }],
+      deferredPolicies: [{
+        policyId: 'ckd-potassium-v1',
+        reason: 'missing-individualized-potassium-target',
+        explanation: 'Potassium was not included in this compatibility score.',
+      }],
+    });
+
+    expect(response.deferredPolicies).toEqual([{
+      policyId: 'ckd-potassium-v1',
+      reason: 'missing-individualized-potassium-target',
+      explanation: 'Potassium was not included in this compatibility score.',
+    }]);
+    expect(response.score).toBe(100);
+  });
+
+  it('maps additive nutrition insights without changing existing evaluation fields', () => {
+    const response = FoodEvaluationResponseMapper.toResponseDto({
+      score: 100,
+      evaluationStatus: 'evaluated',
+      coverage: 53.33,
+      reasons: [],
+      contributions: [],
+      deferredPolicies: [],
+      nutritionInsights: [{
+        category: 'potassium',
+        severity: 'information',
+        title: 'Potassium information',
+        message: 'This serving contains approximately 375 mg of potassium.',
+        evidence: { nutrient: 'potassium', amount: '375', unit: 'mg' },
+      }],
+    });
+
+    expect(response.nutritionInsights).toEqual([{
+      category: 'potassium',
+      severity: 'information',
+      title: 'Potassium information',
+      message: 'This serving contains approximately 375 mg of potassium.',
+      evidence: { nutrient: 'potassium', amount: '375', unit: 'mg' },
+    }]);
+    expect(response.score).toBe(100);
+    expect(response.coverage).toBe(53.33);
+  });
 });

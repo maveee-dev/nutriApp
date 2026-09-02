@@ -7,6 +7,7 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { Sparkles } from 'lucide-react';
 import { useFoodDetail } from '../hooks/useFoods';
 import { FoodEvaluationModal } from '@/features/food-evaluation/components/FoodEvaluationModal';
+import { useCreateDailyNutritionEntryMutation } from '@/features/daily-tracker/hooks/useDailyTracker';
 import type { Serving } from '../types/foods.types';
 import { formatDisplayNumber, preferredServing, scaleNutrientAmount, servingGrams } from '../utils/serving';
 
@@ -20,6 +21,7 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ foodId, onClos
   const [selectedServingId, setSelectedServingId] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('1.0');
   const [isEvaluationOpen, setIsEvaluationOpen] = useState(false);
+  const addToToday = useCreateDailyNutritionEntryMutation(() => setIsEvaluationOpen(false));
 
   React.useEffect(() => {
     if (food) {
@@ -174,6 +176,12 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ foodId, onClos
           food={food}
           selectedServing={selectedServing}
           quantity={quantity}
+          onAddToMeal={() => addToToday.mutate({
+            foodId: food.id,
+            servingId: selectedServing.id,
+            servings: quantity,
+          })}
+          addActionLabel="Add to today's intake"
         />
       )}
     </>

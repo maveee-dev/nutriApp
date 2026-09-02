@@ -5,7 +5,7 @@ import { ConditionTargetRecommendationPolicy } from './condition-target-recommen
 import type { ConditionTargetRecommendationProjection } from './condition-target-recommendation.types.js';
 
 export function createConditionTargetRecommendationRegistration(
-  nutrient: 'protein' | 'carbohydrates',
+  nutrient: 'protein' | 'carbohydrates' | 'potassium' | 'phosphorus',
   targetPolicyIds: readonly string[],
 ): RecommendationPolicyRegistration<ConditionTargetRecommendationProjection> {
   return {

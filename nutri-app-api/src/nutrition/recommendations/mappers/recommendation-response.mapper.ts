@@ -3,7 +3,8 @@ import { RecommendationResolution } from '../types/recommendation-resolver.type.
 import { Recommendation } from '../types/recommendation.type.js';
 import { RecommendationResolutionResponseDto, CurrentMealRecommendationItemDto, CurrentMealRecommendationsResponseDto, RecommendationEvaluationDayDto, RecommendationEvaluationMetadataDto } from '../dto/recommendation-response.dto.js';
 import { DailyNutritionResponseMapper } from '../../analysis/mappers/controller/daily-nutrition-response.mapper.js';
-import { DailyAdherenceDto, MealAssessmentDto, NutritionPolicyDeferralDto } from '../../analysis/dto/daily-nutrition-response.dto.js';
+import { DailyAdherenceByPolicyDto, DailyAdherenceDto, MealAssessmentDto, NutritionPolicyDeferralDto } from '../../analysis/dto/daily-nutrition-response.dto.js';
+import type { DailyAdherenceSource } from '../../analysis/types/daily-adherence.source.js';
 
 export class RecommendationResponseMapper {
   static toCurrentFoodResponse(snapshot: MealEvaluationSnapshotSource, resolution: RecommendationResolution): RecommendationResolutionResponseDto {
@@ -34,12 +35,10 @@ export class RecommendationResponseMapper {
   }
 
   private static toEvaluationMetadata(source: NonNullable<RecommendationResolution['evaluation']>): RecommendationEvaluationMetadataDto {
-    const dailyAdherence: DailyAdherenceDto | undefined = source.dailyAdherence == null ? undefined : {
-      ...source.dailyAdherence,
-      ...(source.dailyAdherence.targetProvenance == null ? {} : { targetProvenance: { ...source.dailyAdherence.targetProvenance } }),
-      ...(source.dailyAdherence.deferredPolicy == null ? {} : { deferredPolicy: { ...source.dailyAdherence.deferredPolicy } }),
-      snapshotIds: [...source.dailyAdherence.snapshotIds],
-    };
+    const dailyAdherence = source.dailyAdherence == null ? undefined : this.toDailyAdherenceDto(source.dailyAdherence);
+    const dailyAdherenceByPolicy: readonly DailyAdherenceByPolicyDto[] | undefined = source.dailyAdherenceByPolicy == null
+      ? undefined
+      : source.dailyAdherenceByPolicy.map((adherence) => ({ ...this.toDailyAdherenceDto(adherence), policyId: adherence.policyId, policyVersion: adherence.policyVersion, target: adherence.target, measurementKey: adherence.measurementKey, ruleKind: adherence.ruleKind }));
     const mealAssessments: readonly MealAssessmentDto[] | undefined = source.mealAssessments == null
       ? undefined
       : source.mealAssessments.map((assessment) => DailyNutritionResponseMapper.toMealAssessmentDto(assessment, assessment.mealId));
@@ -47,17 +46,23 @@ export class RecommendationResponseMapper {
       date: day.date,
       ...(day.mealAssessments == null ? {} : { mealAssessments: day.mealAssessments.map((assessment) => DailyNutritionResponseMapper.toMealAssessmentDto(assessment, assessment.mealId)) }),
       ...(day.dailyAdherence == null ? {} : { dailyAdherence: {
-        ...day.dailyAdherence,
-        ...(day.dailyAdherence.targetProvenance == null ? {} : { targetProvenance: { ...day.dailyAdherence.targetProvenance } }),
-        ...(day.dailyAdherence.deferredPolicy == null ? {} : { deferredPolicy: { ...day.dailyAdherence.deferredPolicy } }),
-        snapshotIds: [...day.dailyAdherence.snapshotIds],
+        ...this.toDailyAdherenceDto(day.dailyAdherence),
       } }),
+      ...(day.dailyAdherenceByPolicy == null ? {} : { dailyAdherenceByPolicy: day.dailyAdherenceByPolicy.map((adherence) => ({
+        ...this.toDailyAdherenceDto(adherence),
+        policyId: adherence.policyId,
+        policyVersion: adherence.policyVersion,
+        target: adherence.target,
+        measurementKey: adherence.measurementKey,
+        ruleKind: adherence.ruleKind,
+      })) }),
     });
     return {
       ...(source.evaluationMode == null ? {} : { evaluationMode: source.evaluationMode }),
       ...(source.evaluationStatus == null ? {} : { evaluationStatus: source.evaluationStatus }),
       ...(source.coverage == null ? {} : { coverage: source.coverage }),
       ...(dailyAdherence == null ? {} : { dailyAdherence }),
+      ...(dailyAdherenceByPolicy == null ? {} : { dailyAdherenceByPolicy }),
       ...(source.targetProvenance == null ? {} : { targetProvenance: source.targetProvenance.map((provenance) => ({ ...provenance })) }),
       ...(mealAssessments == null ? {} : { mealAssessments }),
       ...(source.mealAssessmentsByDate == null ? {} : { mealAssessmentsByDate: source.mealAssessmentsByDate.map(toDay) }),
@@ -67,6 +72,15 @@ export class RecommendationResponseMapper {
       policySetFingerprints: [...source.policySetFingerprints],
       snapshotFingerprints: [...source.snapshotFingerprints],
       replayLimitations: [...source.replayLimitations],
+    };
+  }
+
+  private static toDailyAdherenceDto(source: DailyAdherenceSource): DailyAdherenceDto {
+    return {
+      ...source,
+      ...(source.targetProvenance == null ? {} : { targetProvenance: { ...source.targetProvenance } }),
+      ...(source.deferredPolicy == null ? {} : { deferredPolicy: { ...source.deferredPolicy } }),
+      snapshotIds: [...source.snapshotIds],
     };
   }
   private static toRecommendation(source: Recommendation) {

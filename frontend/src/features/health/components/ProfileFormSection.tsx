@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useProfile, useUpdateProfileMutation } from '../hooks/useHealth';
 import { User, Check } from 'lucide-react';
-import type { Sex, ActivityLevel } from '../types/health.types';
+import type { Sex, ActivityLevel, UserProfile } from '../types/health.types';
 
 export const ProfileFormSection: React.FC = () => {
   const { data: profile, isLoading, isError, error, refetch } = useProfile();
@@ -18,6 +18,7 @@ export const ProfileFormSection: React.FC = () => {
   const [heightCm, setHeightCm] = useState<string>('');
   const [weightKg, setWeightKg] = useState<string>('');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel | ''>('');
+  const [nutritionGoal, setNutritionGoal] = useState<NonNullable<UserProfile['nutritionGoal']> | ''>('');
 
   useEffect(() => {
     if (profile) {
@@ -26,6 +27,7 @@ export const ProfileFormSection: React.FC = () => {
       setHeightCm(profile.heightCm !== null ? String(profile.heightCm) : '');
       setWeightKg(profile.weightKg !== null ? String(profile.weightKg) : '');
       setActivityLevel(profile.activityLevel || '');
+      setNutritionGoal(profile.nutritionGoal || '');
     }
   }, [profile]);
 
@@ -37,6 +39,7 @@ export const ProfileFormSection: React.FC = () => {
       heightCm: heightCm ? parseFloat(heightCm) : undefined,
       weightKg: weightKg ? parseFloat(weightKg) : undefined,
       activityLevel: activityLevel ? (activityLevel as ActivityLevel) : undefined,
+      nutritionGoal: nutritionGoal || undefined,
     });
   };
 
@@ -139,6 +142,19 @@ export const ProfileFormSection: React.FC = () => {
               { value: 'MODERATE', label: 'Moderate (Exercise 3-5 times/week)' },
               { value: 'ACTIVE', label: 'Active (Daily exercise)' },
               { value: 'VERY_ACTIVE', label: 'Very Active (Intense training)' },
+            ]}
+          />
+
+          <Select
+            label="Nutrition Goal"
+            value={nutritionGoal}
+            onChange={(e) => setNutritionGoal(e.target.value as typeof nutritionGoal)}
+            options={[
+              { value: '', label: 'Select nutrition goal' },
+              { value: 'GENERAL_HEALTH', label: 'General health' },
+              { value: 'WEIGHT_LOSS', label: 'Weight loss' },
+              { value: 'WEIGHT_MAINTENANCE', label: 'Weight maintenance' },
+              { value: 'WEIGHT_GAIN', label: 'Weight gain' },
             ]}
           />
         </div>

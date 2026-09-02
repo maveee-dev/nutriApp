@@ -59,7 +59,8 @@ export function deferralGuidance(deferral: NutritionPolicyDeferral): DeferralGui
 
   if (reason === 'missing-dialysis-modality' || reason === 'conflicting-dialysis-modality') {
     return {
-      supportingText: 'Dialysis modality cannot currently be updated in NutriApp. Ask your care team to help correct this treatment detail.',
+      action: { label: 'Confirm dialysis type', to: '/health#dialysis-status' },
+      supportingText: 'Confirm whether your treatment is hemodialysis or peritoneal dialysis so NutriApp can apply the appropriate guidance.',
     };
   }
 

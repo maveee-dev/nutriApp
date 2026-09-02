@@ -11,8 +11,8 @@ export class GeneralUpperLimitRecommendationPolicy implements RecommendationPoli
   readonly source = 'NutriApp approved General Nutrition upper-limit guidance';
   readonly scopes = ['current-food', 'current-meal'] as const;
 
-  constructor(private readonly nutrient: 'added-sugar' | 'cholesterol', private readonly label: string, private readonly unit: string) {
-    const identity = nutrient === 'added-sugar' ? 'added-sugar' : 'cholesterol';
+  constructor(private readonly nutrient: 'added-sugar' | 'saturated-fat' | 'cholesterol', private readonly label: string, private readonly unit: string) {
+    const identity = nutrient;
     this.policyId = `general-nutrition-${identity}-recommendation`;
     this.version = `${this.policyId}-v1`;
   }

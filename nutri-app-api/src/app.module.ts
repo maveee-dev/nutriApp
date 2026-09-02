@@ -16,6 +16,11 @@ import { NutritionModule } from './nutrition/nutrition.module.js';
 import { MealsModule } from './meals/meals.module.js';
 import { LaboratoryModule } from './laboratory/laboratory.module.js';
 import { DialysisModule } from './dialysis/dialysis.module.js';
+import { HealthProfileModule } from './health-profile/health-profile.module.js';
+import { DailyTrackerModule } from './nutrition/daily-tracker/daily-tracker.module.js';
+import { MealPlannerModule } from './nutrition/meal-planner/meal-planner.module.js';
+import { HealthDashboardModule } from './health-dashboard/health-dashboard.module.js';
+import { PersonalizedRecommendationsModule } from './nutrition/recommendations/personalized-recommendations.module.js';
 
 @Module({
   imports: [
@@ -40,6 +45,11 @@ import { DialysisModule } from './dialysis/dialysis.module.js';
     MealsModule,
     LaboratoryModule,
     DialysisModule,
+    HealthProfileModule,
+    DailyTrackerModule,
+    MealPlannerModule,
+    HealthDashboardModule,
+    PersonalizedRecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

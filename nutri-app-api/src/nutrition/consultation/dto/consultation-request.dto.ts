@@ -1,5 +1,21 @@
-import { IsDateString, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
 import { ConsultationConversationTurnDto } from './consultation-conversation-turn.dto.js';
+
+export class ConsultationClarificationSelectionDto {
+  @IsIn(['food'])
+  type!: 'food';
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  originalQuestion!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  selectedStableId!: string;
+}
 
 export class ConsultationRequestDto {
   @IsString()
@@ -13,4 +29,9 @@ export class ConsultationRequestDto {
 
   @IsOptional()
   conversation?: ConsultationConversationTurnDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConsultationClarificationSelectionDto)
+  clarificationSelection?: ConsultationClarificationSelectionDto;
 }

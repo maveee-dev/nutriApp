@@ -3,7 +3,7 @@ export class RecommendationEvidenceDto { id!: string; kind!: string; source!: Re
 export class RecommendationPolicyReferenceDto { policyId!: string; version!: string; source?: string; }
 export class RecommendationDto { id!: string; category!: string; disposition!: string; severity!: string; scope!: string; title!: string; message!: string; subject?: string; nutrient?: string; evidence!: readonly RecommendationEvidenceDto[]; policy!: RecommendationPolicyReferenceDto; limitations?: readonly string[]; actions?: readonly string[]; }
 export class RecommendationSuppressionDto { candidateId!: string; reason!: string; comparedWith?: string; }
-import { DailyAdherenceDto, MealAssessmentDto, NutritionPolicyDeferralDto, NutritionTargetProvenanceDto } from '../../analysis/dto/daily-nutrition-response.dto.js';
+import { DailyAdherenceByPolicyDto, DailyAdherenceDto, MealAssessmentDto, NutritionPolicyDeferralDto, NutritionTargetProvenanceDto } from '../../analysis/dto/daily-nutrition-response.dto.js';
 
 export class RecommendationEvaluationMetadataDto {
   evaluationMode?: 'current-recomputation' | 'historical-replay';
@@ -12,6 +12,7 @@ export class RecommendationEvaluationMetadataDto {
   mealAssessments?: readonly MealAssessmentDto[];
   mealAssessmentsByDate?: readonly RecommendationEvaluationDayDto[];
   dailyAdherence?: DailyAdherenceDto;
+  dailyAdherenceByPolicy?: readonly DailyAdherenceByPolicyDto[];
   targetProvenance?: readonly NutritionTargetProvenanceDto[];
   dailyAdherenceByDate?: readonly RecommendationEvaluationDayDto[];
   deferredPolicies!: readonly NutritionPolicyDeferralDto[];
@@ -26,6 +27,7 @@ export class RecommendationEvaluationDayDto {
   date!: string;
   mealAssessments?: readonly MealAssessmentDto[];
   dailyAdherence?: DailyAdherenceDto;
+  dailyAdherenceByPolicy?: readonly DailyAdherenceByPolicyDto[];
 }
 
 export class RecommendationResolutionResponseDto { apiVersion!: string; scope!: string; contextId!: string; asOf!: string; evaluationMode?: 'current-recomputation' | 'historical-replay'; evaluation?: RecommendationEvaluationMetadataDto; recommendations!: readonly RecommendationDto[]; suppressed!: readonly RecommendationSuppressionDto[]; }

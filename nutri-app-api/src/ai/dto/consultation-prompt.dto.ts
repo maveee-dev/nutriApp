@@ -45,6 +45,17 @@ export interface ConsultationPromptFoodEvaluation {
     readonly reason: string;
     readonly explanation: string;
   }[];
+  readonly nutritionInsights?: readonly {
+    readonly category: string;
+    readonly severity: string;
+    readonly title: string;
+    readonly message: string;
+    readonly evidence: {
+      readonly nutrient: string;
+      readonly amount: string;
+      readonly unit: string;
+    };
+  }[];
   readonly targetProvenance: readonly ConsultationPromptTargetProvenance[];
   readonly policySetFingerprint: string | null;
 }

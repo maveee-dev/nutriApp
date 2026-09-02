@@ -6,6 +6,7 @@ import { CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { useFoodEvaluation } from '../hooks/useFoodEvaluation';
 import type { FoodDetail, Serving } from '@/features/foods/types/foods.types';
 import { scaleNutrientAmount, servingGrams } from '@/features/foods/utils/serving';
+import { formatContributionExplanation } from '../foodEvaluationPresentation';
 
 const notableNutrientPatterns = [
   /^(?:energy|calories)$/i,
@@ -36,6 +37,7 @@ export interface FoodEvaluationModalProps {
   selectedServing: Serving | null;
   quantity: string;
   onAddToMeal?: () => void;
+  addActionLabel?: string;
 }
 
 export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
@@ -45,6 +47,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
   selectedServing,
   quantity,
   onAddToMeal,
+  addActionLabel = 'Log to Meal',
 }) => {
   const { mutate, data, isPending, error } = useFoodEvaluation();
 
@@ -60,8 +63,13 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
 
   if (!food || !selectedServing) return null;
   const selectedGrams = servingGrams(selectedServing, Number.parseFloat(quantity));
+  const deferredPolicies = data?.deferredPolicies ?? [];
+  const hasPartialEvaluation = data != null && (data.coverage < 100 || deferredPolicies.length > 0);
 
-  const getScoreColor = (score: number) => {
+  const getScorePresentation = (score: number, incompleteCoverage: boolean) => {
+    if (incompleteCoverage) {
+      return { bg: 'var(--bg-surface-secondary)', text: 'var(--text-secondary)', label: 'Supporting score' };
+    }
     if (score >= 80) return { bg: 'var(--color-primary-light)', text: 'var(--color-primary-shadow)', label: 'Looks like a great fit' };
     if (score >= 50) return { bg: 'var(--color-accent-light)', text: 'var(--color-accent-shadow)', label: 'A reasonable choice with trade-offs' };
     return { bg: 'var(--color-danger-light)', text: 'var(--color-danger-shadow)', label: 'Worth balancing with other choices' };
@@ -83,8 +91,8 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
           <p style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Could not evaluate food</p>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{error.message}</p>
         </div>
-      ) : data ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          ) : data ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           {/* Score Header */}
           {data.evaluationStatus === 'insufficient-evidence' ? (
             <div style={{ padding: '16px', backgroundColor: 'var(--color-clinical-subtle)', border: '1px solid var(--color-clinical-light)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -92,53 +100,119 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-clinical-hover)' }}>Not enough evidence to score this food</h3>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.45 }}>Some applicable nutrition data is missing, so this result is not a positive or negative compatibility judgment.</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>{data.coverage}% evidence coverage</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>Some clinically relevant guidance could not be evaluated for this portion.</p>
               </div>
             </div>
           ) : (() => {
-              const { bg, text, label } = getScoreColor(data.score);
+              const { bg, text, label } = getScorePresentation(data.score, hasPartialEvaluation);
               return (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '16px',
-                  backgroundColor: bg,
-                  borderRadius: 'var(--radius-lg)',
-                }}
-              >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {hasPartialEvaluation && (
+                  <div
+                    role="status"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      backgroundColor: 'var(--color-clinical-subtle)',
+                      border: '1px solid var(--color-clinical-light)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--color-clinical-hover)',
+                      fontSize: '0.8rem',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <Info size={16} color="var(--color-clinical)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      {hasPartialEvaluation ? (
+                        <>
+                          <strong style={{ display: 'block', fontSize: '0.9rem' }}>Compatibility check is incomplete</strong>
+                          <span style={{ display: 'block', marginTop: '3px' }}>Some clinically relevant nutrition guidance was not included in this compatibility score.</span>
+                          <span style={{ display: 'block', marginTop: '3px' }}>This score reflects only the nutrition guidance that could currently be evaluated.</span>
+                        </>
+                      ) : (
+                        <span>Some clinically relevant nutrition guidance was not included in this compatibility score.</span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div
                   style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: 'var(--radius-full)',
-                    backgroundColor: 'var(--bg-surface)',
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: 'var(--shadow-sm)',
-                    flexShrink: 0,
+                    gap: '16px',
+                    padding: '16px',
+                    backgroundColor: bg,
+                    borderRadius: 'var(--radius-lg)',
+                    border: hasPartialEvaluation ? '1px solid var(--border-subtle)' : undefined,
                   }}
                 >
-                  <span style={{ fontSize: '1.35rem', fontWeight: 800, color: text, lineHeight: 1 }}>
-                    {data.score}
-                  </span>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    / 100
-                  </span>
-                </div>
+                  <div
+                    style={{
+                      width: hasPartialEvaluation ? '44px' : '56px',
+                      height: hasPartialEvaluation ? '44px' : '56px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--bg-surface)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: hasPartialEvaluation ? 'none' : 'var(--shadow-sm)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: hasPartialEvaluation ? '1.05rem' : '1.35rem', fontWeight: 800, color: text, lineHeight: 1 }}>
+                      {data.score}
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      / 100
+                    </span>
+                  </div>
 
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: text }}>{label}</h3>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    A friendly check against your current goals and nutrition guidance
-                  </p>
+                  <div>
+                    <h3 style={{ fontSize: hasPartialEvaluation ? '0.95rem' : '1.1rem', fontWeight: 700, color: text }}>{label}</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      {hasPartialEvaluation
+                        ? 'Shown as supporting information for the guidance that could be evaluated'
+                        : 'A friendly check against your current goals and nutrition guidance'}
+                    </p>
+                  </div>
                 </div>
               </div>
               );
             })()}
+
+          {data.nutritionInsights && data.nutritionInsights.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Nutrition Insights
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {data.nutritionInsights.map((insight) => (
+                  <div
+                    key={`${insight.category}-${insight.title}`}
+                    style={{
+                      padding: '10px 14px',
+                      backgroundColor: 'var(--bg-surface-secondary)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{insight.title}</strong>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {insight.evidence.amount} {insight.evidence.unit}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: '4px' }}>
+                      {insight.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Reasons List */}
           {data.reasons && data.reasons.length > 0 && (
@@ -197,7 +271,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
                       <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{contribution.nutrient}</strong>
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{contribution.amount}{contribution.targetValue ? ` / ${contribution.targetValue} target` : ''}</span>
                     </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: '4px' }}>{contribution.explanation}</p>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: '4px' }}>{formatContributionExplanation(contribution)}</p>
                   </div>
                 ))}
               </div>
@@ -224,27 +298,40 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
           )}
 
           {/* Deferred Policies Callout */}
-          {data.deferredPolicies && data.deferredPolicies.length > 0 && (
+          {deferredPolicies.length > 0 && (
             <div
               style={{
-                padding: '12px 14px',
-                backgroundColor: 'var(--color-clinical-subtle)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--color-clinical-light)',
                 display: 'flex',
-                alignItems: 'flex-start',
+                flexDirection: 'column',
                 gap: '8px',
               }}
             >
-              <Info size={16} color="var(--color-clinical)" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-clinical-hover)' }}>
-                  Information Note
-                </span>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  {data.deferredPolicies[0].explanation}
-                </p>
-              </div>
+              {deferredPolicies.map((policy) => (
+                <div
+                  key={`${policy.policyId}-${policy.reason}`}
+                  style={{
+                    padding: '12px 14px',
+                    backgroundColor: 'var(--color-clinical-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-clinical-light)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Info size={16} color="var(--color-clinical)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-clinical-hover)' }}>
+                      Information Note
+                    </span>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      {policy.explanation}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -266,7 +353,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
             </Button>
             {onAddToMeal && (
               <Button variant="primary" onClick={onAddToMeal} style={{ flex: 1 }}>
-                Log to Meal
+                {addActionLabel}
               </Button>
             )}
           </div>

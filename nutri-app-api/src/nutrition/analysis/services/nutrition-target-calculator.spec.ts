@@ -212,6 +212,12 @@ describe('NutritionTargetCalculator', () => {
         reason: 'missing-maintenance-energy',
         explanation: 'A complete profile is needed to calculate the cardiovascular saturated-fat reference from maintenance energy; the General Nutrition reference remains active.',
       }],
+      resolvedRules: expect.arrayContaining([
+        expect.objectContaining({ policyId: 'cardiovascular-sodium-v1', measurementKey: 'sodium', unit: 'mg' }),
+        expect.objectContaining({ policyId: 'general-nutrition-saturated-fat-v1', measurementKey: 'saturated-fat', unit: 'g' }),
+        expect.objectContaining({ policyId: 'general-nutrition-added-sugars-v1', measurementKey: 'added-sugar', unit: 'g' }),
+        expect.objectContaining({ policyId: 'general-nutrition-fiber-v1', measurementKey: 'fiber', unit: 'g' }),
+      ]),
       targetProvenance: expect.arrayContaining([expect.objectContaining({
         target: 'sodiumMilligrams',
         policyId: 'general-nutrition-sodium-v1',

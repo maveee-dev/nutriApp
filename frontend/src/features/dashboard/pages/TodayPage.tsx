@@ -149,6 +149,12 @@ export const TodayPage: React.FC = () => {
               Log Meal
             </Button>
             <Link
+              to="/daily-tracker"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: 'var(--radius-full)', border: '1.5px solid var(--border-light)', backgroundColor: 'var(--bg-surface)', color: 'var(--color-primary)', fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              Daily Nutrition
+            </Link>
+            <Link
               to="/consultation"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: 'var(--radius-full)', border: '1.5px solid var(--border-light)', backgroundColor: 'var(--bg-surface)', color: 'var(--color-primary)', fontSize: '0.82rem', fontWeight: 700 }}
             >

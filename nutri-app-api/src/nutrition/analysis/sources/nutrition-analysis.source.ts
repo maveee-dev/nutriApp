@@ -1,4 +1,5 @@
 export interface NutritionAnalysisNutrientSource {
+  readonly sourceId?: string | null;
   readonly name: string;
   readonly unit: string;
   readonly amountPer100Grams: string;

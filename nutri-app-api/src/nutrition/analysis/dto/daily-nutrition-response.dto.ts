@@ -130,6 +130,7 @@ export class NutritionTargetsDto {
   cholesterolMilligrams?: string | null;
   fiberGrams?: string | null;
   carbohydrateGrams?: string | null;
+  potassiumMilligrams?: string | null;
   phosphorusMilligrams?: string | null;
   caloriesKcal?: string | null;
 }

@@ -1,7 +1,9 @@
 import { NutritionPolicyDeferralSource, NutritionTargets, NutritionTargetCalculation } from '../../analysis/types/nutrition-targets.type.js';
 import { NutritionTotal } from '../../analysis/types/nutrition-total.type.js';
+import type { NutritionInsight } from '../../insights/types/nutrition-insight.type.js';
 
 export interface FoodEvaluationNutrientInput {
+  readonly sourceId?: string | null;
   readonly name: string;
   readonly unit: string;
   readonly amountPer100Grams: string;
@@ -42,6 +44,8 @@ export interface FoodEvaluationSource {
   readonly reasons: readonly FoodEvaluationReason[];
   readonly contributions: readonly FoodEvaluationContribution[];
   readonly deferredPolicies: readonly NutritionPolicyDeferralSource[];
+  /** Additive educational projection; it never affects evaluation semantics. */
+  readonly nutritionInsights?: readonly NutritionInsight[];
 }
 
 export interface FoodEvaluationWithContextSource {

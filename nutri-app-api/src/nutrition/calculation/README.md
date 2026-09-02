@@ -115,3 +115,23 @@ Phase 3I audit boundary:
 - Final cleanup can remove the v1 replay fallback and its unit helper only
   after version 2 is the supported production snapshot format and historical
   replay coverage confirms that no v1 records remain in scope.
+
+Projection completeness status:
+
+- Active general and condition-specific numeric targets now share the
+  `NUTRITION_EVALUATION_RULE_DESCRIPTORS` metadata. This keeps units, scopes,
+  roles, and rule kinds consistent when targets flow into Meal Assessment and
+  Daily Adherence.
+- Food Evaluation exposes sodium both as its compatibility reason and as a
+  contribution from the same Kernel-calculated measured value. The existing
+  safety score and reason contract are unchanged.
+- Recommendation metadata now carries the generic per-policy Daily Adherence
+  projection, including its snapshot, evaluator, policy-set, and evaluation
+  fingerprints. Consultation forwards that allowlisted projection to AI.
+- Potassium and phosphorus condition-target recommendations consume their
+  existing Food Evaluation snapshot outputs. No recommendation policy
+  recalculates nutrients or resolves targets.
+- Calories remain an informational contribution/daily energy summary rather
+  than a numeric compatibility/adherence rule. Current cholesterol remains
+  contribution-only for new evaluations; the legacy universal cholesterol
+  policy remains replay-only.

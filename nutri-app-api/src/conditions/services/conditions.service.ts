@@ -47,4 +47,8 @@ export class ConditionsService {
     await this.conditionsRepository.removeFromUser(userId, conditionId);
     this.logger.log(`Condition removed: user=${userId}, condition=${conditionId}`);
   }
+
+  replaceMyConditions(userId: string, conditionIds: readonly string[]): Promise<UserConditionSource[]> {
+    return this.conditionsRepository.replaceForUser(userId, conditionIds);
+  }
 }

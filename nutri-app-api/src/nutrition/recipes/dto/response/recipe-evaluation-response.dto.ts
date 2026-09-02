@@ -10,6 +10,7 @@ export class RecipeEvaluationResponseDto {
     reasons: readonly unknown[];
     contributions: readonly unknown[];
     deferredPolicies: readonly unknown[];
+    nutritionInsights?: readonly unknown[];
   };
   targetCalculation!: {
     targets: unknown;

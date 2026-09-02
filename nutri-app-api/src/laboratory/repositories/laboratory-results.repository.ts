@@ -33,7 +33,9 @@ export class LaboratoryResultsRepository {
   ): Promise<LaboratoryResultSource[]> {
     const results = await this.prisma.laboratoryResult.findMany({
       where: { userId, ...(input.testCode ? { testCode: input.testCode } : {}) },
-      orderBy: { collectedAt: 'desc' },
+      // Evidence resolution consumes this list in order. Keep equal-dated
+      // results deterministic without changing the primary clinical ordering.
+      orderBy: [{ collectedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
     });
     return results.map(LaboratoryResultRepositoryMapper.toSource);
   }

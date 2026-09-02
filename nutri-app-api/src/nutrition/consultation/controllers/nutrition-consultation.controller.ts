@@ -13,6 +13,6 @@ export class NutritionConsultationController {
 
   @Post()
   consult(@CurrentUser() user: JwtPayload, @Body() request: ConsultationRequestDto): Promise<NutritionConsultationResponseDto> {
-    return this.service.consult(user.sub, request.question, request.date, request.conversation ?? []);
+    return this.service.consult(user.sub, request.question, request.date, request.conversation ?? [], request.clarificationSelection);
   }
 }

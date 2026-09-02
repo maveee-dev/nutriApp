@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ConditionsRepository } from '../../../conditions/repositories/conditions.repository.js';
 import { ProfilesRepository } from '../../../profiles/repositories/profiles.repository.js';
 import { NutritionTargetCalculation } from '../types/nutrition-targets.type.js';
@@ -12,6 +12,7 @@ import { requireEvidenceSlice } from '../types/nutrition-evidence-provider.type.
 import { RenalNutritionEvidence } from '../types/renal-nutrition-evidence.slice.js';
 import { DiabetesNutritionEvidence } from '../types/diabetes-nutrition-evidence.slice.js';
 import { DIABETES_EVIDENCE_KEY, RENAL_EVIDENCE_KEY } from './nutrition-evidence.providers.js';
+import { HealthProfileService } from '../../../health-profile/services/health-profile.service.js';
 
 /** Coordinates user evidence retrieval and execution of the explicit nutrition policies. */
 @Injectable()
@@ -22,6 +23,7 @@ export class NutritionPolicyService {
     private readonly targetCalculator: NutritionTargetCalculator,
     @Inject(NUTRITION_EVIDENCE_PROVIDERS)
     private readonly evidenceProviders: readonly NutritionEvidenceProvider[] = [],
+    @Optional() private readonly healthProfileService?: HealthProfileService,
   ) {}
 
   async calculateForUser(userId: string, energyGoal: EnergyGoal = 'maintenance'): Promise<NutritionTargetCalculation> {
@@ -31,9 +33,17 @@ export class NutritionPolicyService {
   }
 
   async loadContext(userId: string, energyGoal: EnergyGoal = 'maintenance'): Promise<NutritionEvaluationContext> {
-    const [profile, conditions, ...evidenceSlices] = await Promise.all([
-      this.profilesRepository.getMyProfile(userId),
-      this.conditionsRepository.findUserConditions(userId),
+    const baseProfile = this.healthProfileService == null
+      ? Promise.all([
+        this.profilesRepository.getMyProfile(userId),
+        this.conditionsRepository.findUserConditions(userId),
+      ]).then(([profile, conditions]) => ({ profile, conditions }))
+      : this.healthProfileService.get(userId, { includeTargets: false }).then((profile) => ({
+        profile: profile.personal,
+        conditions: profile.conditions,
+      }));
+    const [{ profile, conditions }, ...evidenceSlices] = await Promise.all([
+      baseProfile,
       ...this.evidenceProviders.map((provider) => provider.load(userId)),
     ]);
     const evidence = Object.fromEntries(this.evidenceProviders.map((provider, index) => [provider.key, evidenceSlices[index]]));

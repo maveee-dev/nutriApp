@@ -153,6 +153,7 @@ describe('MealPlanningService', () => {
       expect.objectContaining({ nutrient: 'sodium', measuredValue: '100' }),
     ]);
     expect(result.items[0]?.evaluation.contributions).toEqual([
+      expect.objectContaining({ nutrient: 'sodium', unit: 'mg', amount: '100', targetValue: '2300' }),
       expect.objectContaining({ nutrient: 'protein', amount: '10' }),
     ]);
   });

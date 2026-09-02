@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, LogOut, MessageCircle, Camera } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, LogOut, MessageCircle, Camera, ClipboardList, WandSparkles, FlaskConical, Lightbulb } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLogout } from '@/features/auth/hooks/useAuthMutations';
 
@@ -13,9 +13,14 @@ export const DesktopSidebar: React.FC = () => {
     { to: '/consultation', label: 'Ask NutriApp', icon: <MessageCircle size={20} /> },
     { to: '/food-recognition', label: 'Scan Food', icon: <Camera size={20} /> },
     { to: '/meals', label: 'Meals & Logs', icon: <UtensilsCrossed size={20} /> },
+    { to: '/daily-tracker', label: 'Daily Nutrition', icon: <ClipboardList size={20} /> },
+    { to: '/meal-planner', label: 'Meal Planner', icon: <WandSparkles size={20} /> },
+    { to: '/recommendations', label: 'Recommendations', icon: <Lightbulb size={20} /> },
+    { to: '/recipes', label: 'My Recipes', icon: <UtensilsCrossed size={20} /> },
     { to: '/foods', label: 'Food Catalog', icon: <Search size={20} /> },
     { to: '/trends', label: 'Nutrition Trends', icon: <BarChart3 size={20} /> },
     { to: '/health', label: 'Health Profile', icon: <HeartPulse size={20} /> },
+    { to: '/laboratory', label: 'Laboratory', icon: <FlaskConical size={20} /> },
   ];
 
   const handleLogout = () => void handleLogoutRequest();

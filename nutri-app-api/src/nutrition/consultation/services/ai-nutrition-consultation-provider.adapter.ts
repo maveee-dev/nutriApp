@@ -24,7 +24,9 @@ function toConsultationPrompt(
 ): ConsultationPrompt {
   const evaluation = response.recommendations.evaluation;
   const targetProvenance = evaluation?.targetProvenance ?? [];
-  const foodEvaluation = response.foodEvaluation;
+  const foodEvaluation = response.foodEvaluation == null
+    ? toRecipePromptEvaluation(response)
+    : toPromptFoodEvaluation(response.foodEvaluation);
 
   return {
     consultationType: response.intent,
@@ -39,38 +41,7 @@ function toConsultationPrompt(
       status: result.status,
       usedByPolicies: result.usedByPolicies.map((policy) => policy.policyId),
     })),
-    foodEvaluation: foodEvaluation == null ? null : {
-      foodId: foodEvaluation.foodId,
-      displayName: foodEvaluation.displayName,
-      variantLabel: foodEvaluation.variantLabel,
-      serving: {
-        name: foodEvaluation.serving.name,
-        grams: foodEvaluation.serving.grams,
-        quantity: foodEvaluation.serving.quantity,
-      },
-      evaluationStatus: foodEvaluation.evaluation.evaluationStatus ?? 'evaluated',
-      compatibilityScore: foodEvaluation.evaluation.score,
-      coverage: foodEvaluation.evaluation.coverage,
-      reasons: foodEvaluation.evaluation.reasons.map((reason) => ({
-        nutrient: reason.nutrient,
-        direction: reason.direction,
-        measuredValue: reason.measuredValue,
-        targetValue: reason.targetValue,
-        explanation: reason.explanation,
-      })),
-      contributions: foodEvaluation.evaluation.contributions.map((contribution) => ({
-        nutrient: contribution.nutrient,
-        amount: contribution.amount,
-        unit: contribution.unit,
-        targetValue: contribution.targetValue,
-        currentDailyValue: contribution.currentDailyValue,
-        explanation: contribution.explanation,
-      })),
-      targets: foodEvaluation.targetCalculation.targets,
-      deferredPolicies: foodEvaluation.evaluation.deferredPolicies.map((policy) => ({ ...policy })),
-      targetProvenance: (foodEvaluation.targetCalculation.targetProvenance ?? []).map(toPromptTargetProvenance),
-      policySetFingerprint: foodEvaluation.policySetFingerprint,
-    },
+    foodEvaluation,
     dailySummary: {
       date: response.date,
       evaluationMode: response.recommendations.evaluationMode,
@@ -81,15 +52,25 @@ function toConsultationPrompt(
         reason: policy.reason,
         explanation: policy.explanation,
       })),
-      adherence: evaluation?.dailyAdherence == null ? [] : [{
-        measurementKey: 'daily-adherence',
-        status: evaluation.dailyAdherence.status,
-        targetValue: evaluation.dailyAdherence.targetValue,
-        consumedValue: evaluation.dailyAdherence.consumedValue,
-        remainingValue: evaluation.dailyAdherence.remainingValue,
-        exceededValue: evaluation.dailyAdherence.exceededValue,
-        coveragePercentage: evaluation.dailyAdherence.coveragePercentage,
-      }],
+      adherence: evaluation?.dailyAdherenceByPolicy != null && evaluation.dailyAdherenceByPolicy.length > 0
+        ? evaluation.dailyAdherenceByPolicy.map((adherence) => ({
+          measurementKey: adherence.measurementKey,
+          status: adherence.status,
+          targetValue: adherence.targetValue,
+          consumedValue: adherence.consumedValue,
+          remainingValue: adherence.remainingValue,
+          exceededValue: adherence.exceededValue,
+          coveragePercentage: adherence.coveragePercentage,
+        }))
+        : evaluation?.dailyAdherence == null ? [] : [{
+          measurementKey: 'daily-adherence',
+          status: evaluation.dailyAdherence.status,
+          targetValue: evaluation.dailyAdherence.targetValue,
+          consumedValue: evaluation.dailyAdherence.consumedValue,
+          remainingValue: evaluation.dailyAdherence.remainingValue,
+          exceededValue: evaluation.dailyAdherence.exceededValue,
+          coveragePercentage: evaluation.dailyAdherence.coveragePercentage,
+        }],
       replayLimitations: evaluation?.replayLimitations ?? [],
       targetProvenance: targetProvenance.map(toPromptTargetProvenance),
       snapshotIds: evaluation?.snapshotIds,
@@ -113,6 +94,52 @@ function toConsultationPrompt(
     })),
     userQuestion: response.question,
     conversation: conversation.map((turn) => ({ role: turn.role, content: turn.content })),
+  };
+}
+
+function toRecipePromptEvaluation(response: NutritionConsultationResponseDto): NonNullable<ConsultationPrompt['foodEvaluation']> | null {
+  const recipeEvaluation = response.recipeEvaluation;
+  const candidate = response.foodResolution?.candidates[0];
+  if (recipeEvaluation == null || candidate == null) return null;
+  return {
+    foodId: candidate.recipeId ?? candidate.stableId ?? '',
+    displayName: candidate.displayName,
+    variantLabel: candidate.variantLabel ?? null,
+    serving: { name: '1 serving', grams: recipeEvaluation.portionGrams, quantity: '1' },
+    evaluationStatus: recipeEvaluation.evaluation.evaluationStatus ?? 'evaluated',
+    compatibilityScore: recipeEvaluation.evaluation.score,
+    coverage: recipeEvaluation.evaluation.coverage,
+    reasons: recipeEvaluation.evaluation.reasons.map((reason) => ({ nutrient: reason.nutrient, direction: reason.direction, measuredValue: reason.measuredValue, targetValue: reason.targetValue, explanation: reason.explanation })),
+    contributions: recipeEvaluation.evaluation.contributions.map((contribution) => ({ nutrient: contribution.nutrient, amount: contribution.amount, unit: contribution.unit, targetValue: contribution.targetValue, currentDailyValue: contribution.currentDailyValue, explanation: contribution.explanation })),
+    targets: recipeEvaluation.targetCalculation.targets,
+    deferredPolicies: recipeEvaluation.evaluation.deferredPolicies.map((policy) => ({ ...policy })),
+    targetProvenance: (recipeEvaluation.targetCalculation.targetProvenance ?? []).map(toPromptTargetProvenance),
+    policySetFingerprint: recipeEvaluation.provenance.policySetFingerprint,
+  };
+}
+
+function toPromptFoodEvaluation(foodEvaluation: NonNullable<NutritionConsultationResponseDto['foodEvaluation']>): NonNullable<ConsultationPrompt['foodEvaluation']> {
+  return {
+    foodId: foodEvaluation.foodId,
+    displayName: foodEvaluation.displayName,
+    variantLabel: foodEvaluation.variantLabel,
+    serving: {
+      name: foodEvaluation.serving.name,
+      grams: foodEvaluation.serving.grams,
+      quantity: foodEvaluation.serving.quantity,
+    },
+    evaluationStatus: foodEvaluation.evaluation.evaluationStatus ?? 'evaluated',
+    compatibilityScore: foodEvaluation.evaluation.score,
+    coverage: foodEvaluation.evaluation.coverage,
+    reasons: foodEvaluation.evaluation.reasons.map((reason) => ({ nutrient: reason.nutrient, direction: reason.direction, measuredValue: reason.measuredValue, targetValue: reason.targetValue, explanation: reason.explanation })),
+    contributions: foodEvaluation.evaluation.contributions.map((contribution) => ({ nutrient: contribution.nutrient, amount: contribution.amount, unit: contribution.unit, targetValue: contribution.targetValue, currentDailyValue: contribution.currentDailyValue, explanation: contribution.explanation })),
+    targets: foodEvaluation.targetCalculation.targets,
+    deferredPolicies: foodEvaluation.evaluation.deferredPolicies.map((policy) => ({ ...policy })),
+    ...(foodEvaluation.evaluation.nutritionInsights == null ? {} : {
+      nutritionInsights: foodEvaluation.evaluation.nutritionInsights.map((insight) => ({ category: insight.category, severity: insight.severity, title: insight.title, message: insight.message, evidence: { ...insight.evidence } })),
+    }),
+    targetProvenance: (foodEvaluation.targetCalculation.targetProvenance ?? []).map(toPromptTargetProvenance),
+    policySetFingerprint: foodEvaluation.policySetFingerprint,
   };
 }
 

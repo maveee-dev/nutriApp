@@ -11,7 +11,7 @@ export class ConditionTargetRecommendationPolicy implements RecommendationPolicy
   readonly source = 'NutriApp approved condition-specific target guidance';
   readonly scopes = ['current-food', 'current-meal'] as const;
 
-  constructor(private readonly nutrient: 'protein' | 'carbohydrates', private readonly targetPolicyIds: readonly string[]) {
+  constructor(private readonly nutrient: 'protein' | 'carbohydrates' | 'potassium' | 'phosphorus', private readonly targetPolicyIds: readonly string[]) {
     this.policyId = `${nutrient}-condition-target-recommendation`;
     this.version = `${this.policyId}-v1`;
   }
@@ -43,11 +43,20 @@ export class ConditionTargetRecommendationPolicy implements RecommendationPolicy
     return [this.candidate(this.recommendation(context, 'positive', 'low', `${this.label()} contribution is supported`, reason?.explanation ?? contribution.explanation, evidence), 'positive', 50)];
   }
 
-  private targetMatches(target: string): boolean { return this.nutrient === 'protein' ? target === 'proteinGrams' : target === 'carbohydrateGrams'; }
-  private targetKey(): 'proteinGrams' | 'carbohydrateGrams' { return this.nutrient === 'protein' ? 'proteinGrams' : 'carbohydrateGrams'; }
-  private targetValue(targets: ConditionTargetRecommendationContext['projection']['payload']['targets']): string | null { return this.nutrient === 'protein' ? targets.proteinGrams ?? null : targets.carbohydrateGrams ?? null; }
-  private label(): string { return this.nutrient === 'protein' ? 'protein' : 'carbohydrate'; }
-  private unit(): string { return 'g'; }
+  private targetMatches(target: string): boolean { return this.targetKey() === target; }
+  private targetKey(): 'proteinGrams' | 'carbohydrateGrams' | 'potassiumMilligrams' | 'phosphorusMilligrams' {
+    if (this.nutrient === 'protein') return 'proteinGrams';
+    if (this.nutrient === 'carbohydrates') return 'carbohydrateGrams';
+    return this.nutrient === 'potassium' ? 'potassiumMilligrams' : 'phosphorusMilligrams';
+  }
+  private targetValue(targets: ConditionTargetRecommendationContext['projection']['payload']['targets']): string | null {
+    return targets[this.targetKey()] ?? null;
+  }
+  private label(): string {
+    if (this.nutrient === 'carbohydrates') return 'carbohydrate';
+    return this.nutrient;
+  }
+  private unit(): string { return this.nutrient === 'protein' || this.nutrient === 'carbohydrates' ? 'g' : 'mg'; }
 
   private deferred(context: ConditionTargetRecommendationContext, reason: string, message: string): RecommendationCandidate {
     const recommendation: Recommendation = { id: `${this.policyId}-deferred-${reason}`, category: 'deferred-policy', disposition: 'informational', severity: 'low', scope: context.scope, title: `${this.label()} guidance is deferred`, message, nutrient: this.nutrient, evidence: [snapshotEvidence(context.projection.snapshot, 'policy-deferral', 'deferredPolicies', reason, message)], policy: { policyId: this.policyId, version: this.version, source: this.source }, limitations: ['This message does not establish a diagnosis, prescribe treatment, or replace professional medical judgment.'] };

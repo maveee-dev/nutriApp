@@ -7,7 +7,10 @@ import { tofoodDetailSource, toFoodSummarySource } from '../mappers/repository/f
 import { FOOD_DETAIL_INCLUDE, FOOD_SUMMARY_INCLUDE } from './food.prisma.js';
 import { FindManyResult } from "../../../common/interfaces/find-many-result.interface.js";
 import { FoodDetailSource } from "../sources/food-detail.source.js";
-import { rankFoodSearchResults } from '../services/food-search-ranker.js';
+import {
+  diversifyFoodSearchResults,
+  rankFoodSearchResults,
+} from '../services/food-search-ranker.js';
 
 @Injectable()
 export class FoodsRepository {
@@ -82,9 +85,12 @@ export class FoodsRepository {
   ): Promise<FindManyResult<FoodSummarySource>> {
     if (options.search?.trim()) {
       const candidates = await this.findSearchCandidates(options);
-      const ranked = rankFoodSearchResults(candidates, options.search);
+      const ranked = rankFoodSearchResults(candidates, options.search, options.rankingContext);
+      const ordered = options.rankingContext === 'food-recognition'
+        ? ranked
+        : diversifyFoodSearchResults(ranked, options.take);
       return {
-        items: ranked.slice(options.skip, options.skip + options.take),
+        items: ordered.slice(options.skip, options.skip + options.take),
         totalItems: ranked.length,
       };
     }

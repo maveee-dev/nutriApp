@@ -1,36 +1,66 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { FoodsService } from '../../foods/services/foods.service.js';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { FoodRecognitionResponseDto } from '../dto/food-recognition-response.dto.js';
 import { FoodRecognitionRequestDto } from '../dto/food-recognition-request.dto.js';
 import { FOOD_RECOGNITION_PROVIDER } from '../types/food-recognition.tokens.js';
 import type { FoodRecognitionProvider } from '../types/food-recognition-provider.type.js';
+import { FoodEntityResolver } from '../../consultation/services/food-entity-resolver.js';
 
 @Injectable()
 export class FoodRecognitionService {
+  private readonly logger = new Logger(FoodRecognitionService.name);
+
   constructor(
-    private readonly foodsService: FoodsService,
+    private readonly foodEntityResolver: FoodEntityResolver,
     @Inject(FOOD_RECOGNITION_PROVIDER)
     private readonly provider: FoodRecognitionProvider,
   ) {}
 
   async recognize(request: FoodRecognitionRequestDto): Promise<FoodRecognitionResponseDto> {
     this.validateImagePayload(request);
-    const detections = await this.provider.recognize(request);
-    const candidates = await Promise.all(detections.map(async (detection) => {
-      const matches = await this.foodsService.findMany({ page: 1, limit: 1, search: detection.label });
-      const match = detection.confidence >= 0.75 ? matches.items[0] : undefined;
-      const estimatedNutrition = detection.estimatedNutrition;
+    if (!this.provider.available) {
+      return this.unavailableResponse('Image recognition is not configured. Use the food catalog to select canonical foods.');
+    }
+
+    let recognition;
+    try {
+      recognition = await this.provider.recognize(request);
+    } catch (error) {
+      this.logger.warn(`Food recognition provider failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+      return this.unavailableResponse('We could not recognize this image right now. Please try again with a clearer photo.');
+    }
+
+    const candidates = recognition.imageQuality.status === 'poor'
+      ? []
+      : await Promise.all(recognition.detections.map(async (detection) => {
+      const resolution = await this.foodEntityResolver.resolveFoodLabel(detection.label);
+      const match = resolution.status === 'resolved' ? resolution.candidates[0] : undefined;
+      const choices = resolution.clarification?.choices;
+      const alternatives = resolution.status === 'ambiguous'
+        ? ((choices != null && choices.length > 0) ? choices : resolution.candidates).map((candidate) => ({
+          foodId: candidate.foodId!,
+          displayName: candidate.displayName,
+          variantLabel: candidate.variantLabel ?? null,
+          canonicalName: candidate.canonicalName ?? null,
+        }))
+        : undefined;
       return {
         label: detection.label,
         confidence: detection.confidence,
-        foodId: match?.id ?? null,
-        foodName: match?.name ?? null,
+        foodId: match?.foodId ?? null,
+        foodName: match?.canonicalName ?? null,
         foodDisplayName: match?.displayName ?? null,
         foodVariantLabel: match?.variantLabel ?? null,
-        matchStatus: match ? 'database-match' as const : estimatedNutrition ? 'ai-estimate' as const : 'unmatched' as const,
-        nutritionSource: match ? 'canonical-database' as const : estimatedNutrition ? 'ai-estimated' as const : null,
-        requiresReview: !match,
-        ...(estimatedNutrition == null ? {} : { estimatedNutrition }),
+        matchStatus: match ? 'database-match' as const : resolution.status === 'ambiguous' ? 'ambiguous' as const : 'unmatched' as const,
+        resolutionStatus: match ? 'matched' as const : resolution.status === 'ambiguous' ? 'ambiguous' as const : 'unmatched' as const,
+        nutritionSource: match ? 'canonical-database' as const : null,
+        requiresReview: !match || detection.confidence < 0.75,
+        ...(alternatives == null ? {} : { alternatives }),
+        ...(detection.servingSuggestion == null ? {} : {
+          servingSuggestion: {
+            label: detection.servingSuggestion.label,
+            grams: detection.servingSuggestion.grams ?? null,
+          },
+        }),
       };
     }));
 
@@ -38,12 +68,30 @@ export class FoodRecognitionService {
       apiVersion: 'v1',
       providerId: this.provider.providerId,
       providerAvailable: this.provider.available,
+      recognitionStatus: 'completed',
+      imageQuality: recognition.imageQuality,
+      mealConfidence: recognition.mealConfidence,
+      mealDescription: recognition.mealDescription,
       candidates,
       limitations: [
         'Detected foods must be confirmed and portion-adjusted before evaluation.',
-        'Canonical database matches use deterministic nutrition evaluation. AI-estimated nutrition is separate evidence and requires review before use.',
-        ...(this.provider.available ? [] : ['Image recognition is not configured. Use the food catalog to select a canonical food.']),
+        'Canonical database matches use the existing deterministic nutrition engine. Recognition confidence is only a prompt to review the result.',
+        ...(recognition.imageQuality.status === 'needs-review' ? ['The image may be unclear. Please review every detected food before continuing.'] : []),
       ],
+    };
+  }
+
+  private unavailableResponse(message: string): FoodRecognitionResponseDto {
+    return {
+      apiVersion: 'v1',
+      providerId: this.provider.providerId,
+      providerAvailable: this.provider.available,
+      recognitionStatus: 'unavailable',
+      imageQuality: { status: 'unavailable', issues: [message] },
+      mealConfidence: null,
+      mealDescription: null,
+      candidates: [],
+      limitations: [message],
     };
   }
 

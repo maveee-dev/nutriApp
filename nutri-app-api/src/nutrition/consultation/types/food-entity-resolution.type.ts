@@ -12,6 +12,7 @@ export type FoodEntityMatchType =
   | 'display-prefix'
   | 'alias-prefix'
   | 'canonical-prefix'
+  | 'canonical-token-match'
   | 'fuzzy'
   | 'recipe-exact';
 
@@ -26,6 +27,10 @@ export interface FoodEntityCandidate {
   readonly recipeVersionId?: string;
   readonly displayName: string;
   readonly variantLabel?: string | null;
+  readonly canonicalName?: string;
+  /** Optional user-facing context for disambiguating saved recipes. */
+  readonly recipeYieldServings?: string;
+  readonly recipeIngredientNames?: readonly string[];
   readonly matchType: FoodEntityMatchType;
   readonly confidence: FoodEntityConfidence;
 }

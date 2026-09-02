@@ -7,6 +7,7 @@ import type { FoodDetailSource } from '../sources/food-detail.source.js';
 import { FoodNotFoundError } from '../errors/food-not-found.error.js';
 import { FindFoodsInput } from '../types/find-foods.input.js';
 import { FindFoodsOptions } from '../types/find-foods.option.js';
+import type { FoodSearchRankingContext } from '../types/food-search-ranking-context.type.js';
 
 @Injectable()
 export class FoodsService {
@@ -16,6 +17,7 @@ export class FoodsService {
 
   async findMany(
     input: FindFoodsInput,
+    rankingContext: FoodSearchRankingContext = 'catalog',
   ): Promise<PaginatedResponseSource<FoodSummarySource>> {
     const skip = (input.page - 1) * input.limit;
 
@@ -25,6 +27,7 @@ export class FoodsService {
       take: input.limit,
       sortBy: input.sortBy,
       sortOrder: input.sortOrder,
+      rankingContext,
     };
 
     const { items, totalItems } = 
@@ -40,6 +43,18 @@ export class FoodsService {
       items,
       meta,
     };
+  }
+
+  /**
+   * Returns the complete summary catalog for internal deterministic selectors
+   * such as the meal planner. Public food browsing remains paginated; this
+   * method keeps catalog discovery behind the existing service boundary.
+   */
+  findAllForPlanning(): Promise<readonly FoodSummarySource[]> {
+    return this.foodsRepository.findSearchCandidates({
+      sortBy: 'name',
+      sortOrder: 'asc',
+    });
   }
 
   async findDetailById(
