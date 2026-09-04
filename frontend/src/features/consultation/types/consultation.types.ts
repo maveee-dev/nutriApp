@@ -39,6 +39,74 @@ export interface NutritionConsultationPendingClarification {
   choices: NutritionConsultationClarificationChoice[];
 }
 
+export interface NutritionConsultationEvaluationReason {
+  code: string;
+  direction: 'positive' | 'negative' | 'neutral';
+  nutrient: string;
+  measuredValue: string;
+  targetValue: string | null;
+  explanation: string;
+}
+
+export interface NutritionConsultationEvaluationContribution {
+  nutrient: string;
+  unit?: string;
+  amount: string;
+  targetValue: string | null;
+  currentDailyValue: string | null;
+  explanation: string;
+}
+
+export interface NutritionConsultationNutritionInsight {
+  category: string;
+  severity: 'information' | 'positive' | string;
+  title: string;
+  message: string;
+  evidence?: {
+    nutrient: string;
+    amount: string;
+    unit: string;
+  };
+}
+
+export interface NutritionConsultationEvaluation {
+  score: number;
+  evaluationStatus?: 'evaluated' | 'insufficient-evidence' | string;
+  coverage: number;
+  reasons: NutritionConsultationEvaluationReason[];
+  contributions: NutritionConsultationEvaluationContribution[];
+  deferredPolicies: { policyId: string; reason: string; explanation: string }[];
+  nutritionInsights?: NutritionConsultationNutritionInsight[];
+}
+
+export interface NutritionConsultationFoodEvaluation {
+  foodId: string;
+  displayName: string;
+  variantLabel?: string | null;
+  serving: {
+    id: string;
+    name: string;
+    grams: string;
+    quantity: string;
+  };
+  evaluation: NutritionConsultationEvaluation;
+}
+
+export interface NutritionConsultationRecipeEvaluation {
+  recipeId: string;
+  recipeVersionId: string;
+  recipeVersion: number;
+  portionGrams: string;
+  evaluation: NutritionConsultationEvaluation;
+  limitations?: string[];
+}
+
+export interface NutritionConsultationFoodResolution {
+  status: 'resolved' | 'ambiguous' | 'not-found' | string;
+  query: string;
+  candidates: NutritionConsultationClarificationChoice[];
+}
+
 export interface NutritionConsultationResponse {
   apiVersion: string;
   assistantMode: 'deterministic-evidence' | 'ai-assisted';
@@ -48,6 +116,10 @@ export interface NutritionConsultationResponse {
   question: string;
   date: string;
   intent: string;
+  mealContext?: 'available' | 'unavailable' | 'notRequired' | string;
+  foodResolution?: NutritionConsultationFoodResolution;
+  foodEvaluation?: NutritionConsultationFoodEvaluation;
+  recipeEvaluation?: NutritionConsultationRecipeEvaluation;
   answer: string;
   pendingClarification?: NutritionConsultationPendingClarification;
   recommendations: RecommendationResolution;

@@ -17,6 +17,7 @@ describe('FoodResponseMapper', () => {
     const response = FoodResponseMapper.toFoodSummaryDto({
       id: 'food-1',
       name: 'Egg, whole, raw, frozen, pasteurized',
+      description: 'Whole egg prepared without added ingredients.',
       category: { id: 'category-1', name: 'Dairy and Egg Products', description: null },
       displayName: 'Egg',
       variantLabel: 'Whole · Raw · Frozen · Pasteurized',

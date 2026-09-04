@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MealLogModal } from './MealLogModal';
 
-const mocks = vi.hoisted(() => ({ createRecipe: vi.fn(), createMeal: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createRecipe: vi.fn(), createMeal: vi.fn(), recipeEvaluate: vi.fn() }));
 
 vi.mock('@/features/foods/hooks/useFoods', () => ({ useFoods: (query: { search?: string }) => ({ data: { items: query.search?.toLowerCase().includes('green') ? [{ id: 'food-2', name: 'Green Beans', displayName: 'Green Beans', variantLabel: null, category: { id: 'category-1', name: 'Vegetables', description: null } }] : [] }, isLoading: false }) }));
 vi.mock('@/features/foods/api/foodsApi', () => ({ foodsApi: { getFoodById: vi.fn() } }));
@@ -17,6 +17,10 @@ vi.mock('@/features/recipes/hooks/useRecipes', () => ({
     versions: [{ id: 'version-2', version: 1, name: 'Green Bean Salad', yieldServings: '2', components: [] }],
   }] }),
 }));
+vi.mock('@/features/recipes/api/recipesApi', () => ({ recipesApi: { evaluate: mocks.recipeEvaluate } }));
+vi.mock('@/features/food-evaluation/hooks/useFoodEvaluation', () => ({
+  useFoodEvaluation: () => ({ mutate: vi.fn(), isPending: false, data: null, error: null }),
+}));
 vi.mock('@/features/daily-tracker/hooks/useDailyTracker', () => ({
   useCreateDailyNutritionEntryMutation: (onSuccess?: () => void) => ({ mutate: mocks.createRecipe.mockImplementation(() => onSuccess?.()), isPending: false }),
 }));
@@ -27,9 +31,13 @@ vi.mock('@/features/dashboard/hooks/useDailyRecommendations', () => ({ useDailyR
 vi.mock('@/features/consultation/hooks/useNutritionConsultation', () => ({ useNutritionConsultation: () => ({ mutate: vi.fn(), isPending: false, data: undefined }) }));
 
 describe('MealLogModal recipe logging', () => {
+  afterEach(() => cleanup());
+
   beforeEach(() => {
     mocks.createRecipe.mockReset();
     mocks.createMeal.mockReset();
+    mocks.recipeEvaluate.mockReset();
+    mocks.recipeEvaluate.mockResolvedValue({ evaluation: { score: 86, coverage: 80, deferredPolicies: [] } });
   });
 
   it('shows private recipes in the existing log-meal search and writes a tracker recipe entry', () => {
@@ -47,6 +55,19 @@ describe('MealLogModal recipe logging', () => {
       servings: '2',
     });
     expect(mocks.createMeal).not.toHaveBeenCalled();
+  });
+
+  it('shows the deterministic recipe compatibility result before logging it', async () => {
+    render(<MealLogModal isOpen onClose={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText(/Type to search foods/i), { target: { value: 'chicken adobo' } });
+    fireEvent.click(screen.getByRole('button', { name: /Chicken Adobo.*Recipe/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'View compatibility before adding' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Can I eat this?' })).toBeInTheDocument());
+    expect(screen.getByText('Compatibility check is incomplete')).toBeInTheDocument();
+    expect(screen.getByText('Supporting score')).toBeInTheDocument();
+    expect(screen.getByText('86')).toBeInTheDocument();
+    expect(mocks.recipeEvaluate).toHaveBeenCalledWith('recipe-1', { version: 1, servings: '1' });
   });
 
   it('keeps catalog foods and saved recipes in the same search result set', () => {

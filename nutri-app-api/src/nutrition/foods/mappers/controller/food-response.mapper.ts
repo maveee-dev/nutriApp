@@ -26,6 +26,7 @@ export class FoodResponseMapper {
       id: source.id,
       name: source.name,
       displayName: source.displayName ?? source.name,
+      description: source.description ?? null,
       variantLabel: source.variantLabel ?? null,
       category: source.category,
     };

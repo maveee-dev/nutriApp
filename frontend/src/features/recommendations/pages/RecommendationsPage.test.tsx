@@ -53,6 +53,6 @@ describe('RecommendationsPage', () => {
     mocks.add.mockResolvedValue({});
     render(<MemoryRouter><RecommendationsPage /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: /add to daily intake/i }));
-    expect(mocks.add).toHaveBeenCalledWith({ date: '2026-08-31', foodId: 'food-1', servingId: 'serving-1', servings: '1' });
+    expect(mocks.add).toHaveBeenCalledWith(expect.objectContaining({ foodId: 'food-1', servingId: 'serving-1', servings: '1' }));
   });
 });

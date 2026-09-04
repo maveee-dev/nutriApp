@@ -60,11 +60,27 @@ describe('RecipesPage', () => {
     render(<MemoryRouter><RecipesPage /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText('Recipe name'), { target: { value: 'Chicken Rice Bowl' } });
     fireEvent.change(screen.getByLabelText('Add ingredients'), { target: { value: 'chicken' } });
-    fireEvent.click(screen.getByRole('button', { name: /Chicken Breast.*Canonical catalog food/i }));
-    await waitFor(() => expect(screen.getByText('Ingredients')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Chicken Breast.*Catalog food/i }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Ingredients' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Save recipe' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('You already have a recipe named Chicken Rice Bowl.');
     expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it('presents recipe steps and keeps ingredient quantity separate from serving unit', async () => {
+    render(<MemoryRouter><RecipesPage /></MemoryRouter>);
+
+    expect(screen.getByRole('heading', { name: 'Recipe details' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'How many servings does this recipe make?' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Add ingredients'), { target: { value: 'chicken' } });
+    fireEvent.click(screen.getByRole('button', { name: /Chicken Breast.*Catalog food/i }));
+
+    await waitFor(() => expect(screen.getByLabelText('Serving unit')).toBeInTheDocument());
+    expect(screen.getByText(/1 .*1 piece \(100 g\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Move Chicken Breast down')).toBeInTheDocument();
+    expect(screen.getByLabelText('Duplicate Chicken Breast')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+    expect(screen.getByRole('spinbutton', { name: 'Servings this recipe makes' })).toHaveValue(4);
   });
 });

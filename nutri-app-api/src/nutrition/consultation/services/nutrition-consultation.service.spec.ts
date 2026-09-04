@@ -403,7 +403,7 @@ describe('NutritionConsultationService', () => {
 
     const result = await service.consult('user-1', 'Can I eat bananas?', '2026-08-19');
 
-    expect(result.answer.startsWith('I could only check part of the nutrition guidance')).toBe(true);
+    expect(result.answer.startsWith('This serving of Ripe Banana can fit within the nutrition guidance')).toBe(true);
     expect(result.answer).toContain('This serving contains 422 mg of potassium.');
     expect(result.answer).toContain('Because a personalized potassium target has not been configured');
     expect(result.answer).toContain('Phosphorus could not be included because a personalized phosphorus target has not been configured.');
@@ -501,9 +501,9 @@ describe('NutritionConsultationService', () => {
 
     const result = await service.consult('user-1', 'Can I eat bananas?', '2026-08-19');
 
-    expect(result.answer.startsWith('I could only check part of the nutrition guidance')).toBe(true);
-    expect(result.answer.indexOf('Phosphorus was not included')).toBeLessThan(result.answer.indexOf('appears compatible'));
-    expect(result.answer.indexOf('appears compatible')).toBeLessThan(result.answer.indexOf('numeric compatibility score'));
+    expect(result.answer.startsWith('This serving of Ripe Banana can fit within the nutrition guidance')).toBe(true);
+    expect(result.answer.indexOf('Phosphorus could not be included')).toBeGreaterThan(-1);
+    expect(result.answer.indexOf('Phosphorus could not be included')).toBeLessThan(result.answer.indexOf('numeric compatibility score'));
     expect(result.answer).toContain('The numeric compatibility score for the guidance checked is 100/100.');
     expect(result.answer).not.toContain('53.33%');
   });

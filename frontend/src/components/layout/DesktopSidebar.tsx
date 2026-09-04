@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, LogOut, MessageCircle, Camera, ClipboardList, WandSparkles, FlaskConical, Lightbulb } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, Search, BarChart3, HeartPulse, LogOut, MessageCircle, ClipboardList, FlaskConical } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLogout } from '@/features/auth/hooks/useAuthMutations';
 
@@ -8,19 +8,21 @@ export const DesktopSidebar: React.FC = () => {
   const { user } = useAuthStore();
   const handleLogoutRequest = useLogout();
 
-  const navItems = [
-    { to: '/', label: 'Today', icon: <Sparkles size={20} /> },
-    { to: '/consultation', label: 'Ask NutriApp', icon: <MessageCircle size={20} /> },
-    { to: '/food-recognition', label: 'Scan Food', icon: <Camera size={20} /> },
-    { to: '/meals', label: 'Meals & Logs', icon: <UtensilsCrossed size={20} /> },
-    { to: '/daily-tracker', label: 'Daily Nutrition', icon: <ClipboardList size={20} /> },
-    { to: '/meal-planner', label: 'Meal Planner', icon: <WandSparkles size={20} /> },
-    { to: '/recommendations', label: 'Recommendations', icon: <Lightbulb size={20} /> },
-    { to: '/recipes', label: 'My Recipes', icon: <UtensilsCrossed size={20} /> },
-    { to: '/foods', label: 'Food Catalog', icon: <Search size={20} /> },
-    { to: '/trends', label: 'Nutrition Trends', icon: <BarChart3 size={20} /> },
-    { to: '/health', label: 'Health Profile', icon: <HeartPulse size={20} /> },
-    { to: '/laboratory', label: 'Laboratory', icon: <FlaskConical size={20} /> },
+  const navGroups = [
+    { label: 'Nutrition', items: [
+      { to: '/daily-tracker', label: 'Daily Nutrition', icon: <ClipboardList size={20} /> },
+      { to: '/meals', label: 'Meals & Logs', icon: <UtensilsCrossed size={20} /> },
+      { to: '/recipes', label: 'Recipes', icon: <UtensilsCrossed size={20} /> },
+      { to: '/foods', label: 'Food Catalog', icon: <Search size={20} /> },
+    ] },
+    { label: 'Health', items: [
+      { to: '/health', label: 'Health Profile', icon: <HeartPulse size={20} /> },
+      { to: '/laboratory', label: 'Laboratory', icon: <FlaskConical size={20} /> },
+      { to: '/trends', label: 'Nutrition Trends', icon: <BarChart3 size={20} /> },
+    ] },
+    { label: 'AI', items: [
+      { to: '/consultation', label: 'Nutrition Consultation', icon: <MessageCircle size={20} /> },
+    ] },
   ];
 
   const handleLogout = () => void handleLogoutRequest();
@@ -43,6 +45,7 @@ export const DesktopSidebar: React.FC = () => {
     >
       {/* Brand Header */}
       <div
+        className="sidebar-brand-header"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -65,7 +68,7 @@ export const DesktopSidebar: React.FC = () => {
         >
           <Sparkles size={22} />
         </div>
-        <div>
+        <div className="sidebar-brand-copy">
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             NutriApp
           </h2>
@@ -76,11 +79,39 @@ export const DesktopSidebar: React.FC = () => {
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-        {navItems.map((item) => (
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', flex: 1, overflowY: 'auto' }} aria-label="Main navigation">
+        <NavLink
+          to="/"
+          end
+          className="sidebar-nav-item"
+          title="Dashboard"
+          style={({ isActive }) => ({
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-full)',
+            color: isActive ? 'var(--color-primary)' : 'var(--text-secondary)',
+            backgroundColor: isActive ? 'var(--color-primary-subtle)' : 'transparent',
+            fontWeight: isActive ? 700 : 600,
+            fontSize: '0.925rem',
+            textDecoration: 'none',
+            transition: 'all var(--transition-fast)',
+          })}
+        >
+          <Sparkles size={20} />
+          <span>Dashboard</span>
+        </NavLink>
+
+        {navGroups.map((group) => <div key={group.label} className="sidebar-nav-group">
+          <p className="sidebar-group-label" style={{ padding: '0 var(--space-sm) 5px', color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{group.label}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {group.items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            className="sidebar-nav-item"
+            title={item.label}
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
@@ -98,11 +129,14 @@ export const DesktopSidebar: React.FC = () => {
             {item.icon}
             <span>{item.label}</span>
           </NavLink>
-        ))}
+          ))}
+          </div>
+        </div>)}
       </nav>
 
       {/* User Footer */}
       <div
+        className="sidebar-user-footer"
         style={{
           paddingTop: 'var(--space-md)',
           borderTop: '1.5px solid var(--border-light)',
@@ -112,7 +146,7 @@ export const DesktopSidebar: React.FC = () => {
           gap: '10px',
         }}
       >
-        <div style={{ overflow: 'hidden' }}>
+        <div className="sidebar-user-details" style={{ overflow: 'hidden' }}>
           <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.email || 'My Account'}
           </p>
@@ -124,6 +158,7 @@ export const DesktopSidebar: React.FC = () => {
           type="button"
           onClick={handleLogout}
           title="Sign Out"
+          className="sidebar-logout"
           style={{
             background: 'var(--bg-surface-secondary)',
             border: 'none',

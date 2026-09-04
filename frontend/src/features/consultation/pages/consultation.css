@@ -1,0 +1,724 @@
+.consultation-page {
+  --consultation-content-width: 760px;
+  width: 100%;
+  max-width: var(--consultation-content-width);
+  margin: 0 auto;
+  padding-bottom: var(--space-xl);
+}
+
+.consultation-intro {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: calc(var(--space-sm) * -1);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.consultation-intro .badge {
+  flex-shrink: 0;
+}
+
+.consultation-history,
+.consultation-response {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  animation: consultation-message-in 220ms ease-out;
+}
+
+.consultation-history {
+  margin-top: var(--space-sm);
+}
+
+.consultation-message {
+  display: flex;
+}
+
+.consultation-message.is-user {
+  justify-content: flex-end;
+}
+
+.consultation-message-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: 88%;
+}
+
+.consultation-message.is-user .consultation-message-inner {
+  flex-direction: row-reverse;
+}
+
+.consultation-message-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  margin-top: 2px;
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-message.is-user .consultation-message-icon {
+  color: var(--text-muted);
+  background: var(--bg-surface-secondary);
+}
+
+.consultation-message-bubble {
+  padding: 10px 13px;
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-message.is-user .consultation-message-bubble {
+  background: var(--bg-surface-secondary);
+}
+
+.consultation-message-bubble p,
+.consultation-direct-answer,
+.consultation-answer-card p,
+.consultation-ai-card p {
+  white-space: pre-line;
+}
+
+.consultation-message-bubble p {
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.consultation-starter-card {
+  margin-top: var(--space-sm);
+  border: 1px solid var(--border-light);
+}
+
+.consultation-starter-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.consultation-starter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-starter-heading h2,
+.consultation-section-heading-row h2,
+.consultation-section-title-row h2,
+.consultation-recipe-context h2,
+.consultation-ai-card h2,
+.consultation-clarification-card h2 {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.consultation-starter-heading p,
+.consultation-clarification-card > p {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.consultation-starter-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: var(--space-md);
+}
+
+.consultation-starter-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 45px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--bg-surface-secondary);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.consultation-starter-button:hover,
+.consultation-starter-button:focus-visible {
+  border-color: var(--color-primary);
+  color: var(--color-primary-shadow);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-loading {
+  padding: var(--space-lg) 0;
+}
+
+.consultation-error {
+  color: var(--color-danger);
+}
+
+.consultation-response {
+  margin-top: var(--space-sm);
+  outline: none;
+}
+
+.consultation-answer-card {
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+}
+
+.consultation-answer-card.tone-positive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-answer-card.tone-caution {
+  border-color: var(--color-accent-light);
+  background: var(--color-accent-light);
+}
+
+.consultation-answer-card.tone-negative {
+  border-color: var(--color-danger-light);
+  background: var(--color-danger-light);
+}
+
+.consultation-answer-card.tone-info {
+  border-color: var(--color-info-light);
+  background: var(--color-info-light);
+}
+
+.consultation-section-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.consultation-answer-card .consultation-section-kicker {
+  color: var(--color-primary-shadow);
+}
+
+.consultation-answer-label {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.consultation-direct-answer {
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.consultation-source-note,
+.consultation-muted-copy {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.consultation-section-heading-row,
+.consultation-section-title-row,
+.consultation-ai-heading,
+.consultation-insight-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.consultation-section-heading-row h2,
+.consultation-section-title-row h2,
+.consultation-ai-heading h2 {
+  margin-top: 3px;
+}
+
+.consultation-heading-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.consultation-food-context,
+.consultation-recipe-context {
+  border: 1px solid var(--border-light);
+}
+
+.consultation-food-context-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.consultation-food-context-row strong {
+  color: var(--text-primary);
+}
+
+.consultation-recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: var(--space-md);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.consultation-recipe-meta strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.consultation-compatibility-card {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.consultation-compatibility-card.is-partial {
+  border-color: var(--color-clinical-light);
+  background: var(--color-clinical-subtle);
+}
+
+.consultation-score-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.consultation-score-number {
+  display: flex;
+  align-items: baseline;
+  flex-shrink: 0;
+  color: var(--color-primary-shadow);
+}
+
+.consultation-compatibility-card.is-partial .consultation-score-number {
+  color: var(--text-secondary);
+}
+
+.consultation-score-number strong {
+  font-size: 2.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.consultation-score-number span {
+  margin-left: 3px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.consultation-score-row p {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.consultation-section,
+.consultation-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.consultation-section-title-row {
+  align-items: flex-end;
+}
+
+.consultation-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.consultation-highlight-card {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-secondary);
+}
+
+.consultation-highlight-card > span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.73rem;
+}
+
+.consultation-highlight-card > strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.consultation-highlight-card > p,
+.consultation-insight-card > p,
+.consultation-inline-insight p,
+.consultation-recommendation-list p,
+.consultation-lab-list p {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.consultation-reason-list,
+.consultation-insight-list,
+.consultation-clarification-list,
+.consultation-recommendation-list,
+.consultation-lab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consultation-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-secondary);
+}
+
+.consultation-reason svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.consultation-reason.reason-positive svg {
+  color: var(--color-primary);
+}
+
+.consultation-reason.reason-negative svg {
+  color: var(--color-danger);
+}
+
+.consultation-reason.reason-neutral svg {
+  color: var(--color-accent);
+}
+
+.consultation-reason p {
+  color: var(--text-primary);
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.consultation-reason span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.consultation-insight-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.consultation-insight-heading strong {
+  color: var(--text-primary);
+  font-size: 0.87rem;
+}
+
+.consultation-limitations {
+  border: 1px solid var(--color-clinical-light);
+  background: var(--color-clinical-subtle);
+}
+
+.consultation-limitations ul {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: var(--space-sm) 0 0 18px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.consultation-ai-card {
+  border: 1px solid var(--color-info-light);
+  background: var(--color-info-light);
+}
+
+.consultation-ai-heading > svg {
+  flex-shrink: 0;
+  color: var(--color-info-hover);
+}
+
+.consultation-ai-heading .consultation-section-kicker {
+  color: var(--color-info-hover);
+}
+
+.consultation-ai-card > p {
+  margin-top: var(--space-md);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.consultation-ai-disclaimer {
+  display: block;
+  margin-top: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.consultation-clarification-card {
+  border: 1px solid var(--border-light);
+}
+
+.consultation-clarification-card h2 {
+  margin-top: 4px;
+}
+
+.consultation-clarification-list {
+  margin-top: var(--space-md);
+}
+
+.consultation-clarification-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 13px;
+  text-align: left;
+}
+
+.consultation-clarification-button > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.consultation-clarification-button small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.consultation-supporting-guidance,
+.consultation-lab-card {
+  border: 1px solid var(--border-light);
+}
+
+.consultation-recommendation-list details,
+.consultation-lab-list details {
+  padding: 10px 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.consultation-recommendation-list details:first-child,
+.consultation-lab-list details:first-child {
+  border-top: 0;
+}
+
+.consultation-recommendation-list summary,
+.consultation-lab-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.consultation-recommendation-list summary::-webkit-details-marker,
+.consultation-lab-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.consultation-recommendation-list summary svg,
+.consultation-lab-list summary svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.consultation-recommendation-list small,
+.consultation-lab-list small {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.consultation-lab-list summary > span:last-child {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.consultation-lab-list summary > span:last-child.is-stale {
+  color: var(--color-danger);
+}
+
+.consultation-inline-insight {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-secondary);
+}
+
+.consultation-composer {
+  position: sticky;
+  bottom: var(--space-md);
+  z-index: 55;
+  margin-top: var(--space-md);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.08);
+  background: var(--bg-surface);
+}
+
+.consultation-composer form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consultation-composer textarea {
+  width: 100%;
+  min-height: 54px;
+  max-height: 180px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  font: inherit;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+.consultation-composer textarea:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.consultation-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.consultation-composer-footer > span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+@keyframes consultation-message-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1023px) {
+  .consultation-page {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+
+  .consultation-composer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    margin-top: 0;
+    border-radius: 0;
+    border-right: 0;
+    border-left: 0;
+    padding: var(--space-sm) var(--space-md) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .consultation-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .consultation-starter-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .consultation-message-inner {
+    max-width: 94%;
+  }
+
+  .consultation-direct-answer {
+    font-size: 1rem;
+  }
+
+  .consultation-highlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .consultation-food-context-row,
+  .consultation-recipe-meta {
+    flex-direction: column;
+  }
+
+  .consultation-score-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .consultation-composer-footer > span {
+    max-width: 58%;
+    line-height: 1.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consultation-history,
+  .consultation-response {
+    animation: none;
+  }
+
+  .consultation-starter-button {
+    transition: none;
+  }
+}

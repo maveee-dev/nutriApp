@@ -16,6 +16,10 @@ const HOUSEHOLD_UNIT_NAMES: Readonly<Record<string, string>> = {
   oz: 'ounce',
   ounces: 'ounce',
   ounce: 'ounce',
+  clove: 'clove',
+  cloves: 'clove',
+  stick: 'stick',
+  sticks: 'stick',
 };
 
 /**
@@ -30,7 +34,7 @@ export function formatServingLabel(serving: ServingLabelInput): string {
     const [, amount, rawUnit] = householdMatch;
     const normalizedUnit = rawUnit?.toLowerCase();
     const unit = normalizedUnit == null ? undefined : HOUSEHOLD_UNIT_NAMES[normalizedUnit] ?? normalizedUnit;
-    if (unit && ['cup', 'cups', 'tablespoon', 'teaspoon', 'ounce', 'slice', 'piece', 'egg', 'serving', 'fillet', 'breast', 'leg', 'bowl', 'glass', 'can', 'packet'].includes(unit)) {
+    if (unit && ['cup', 'cups', 'tablespoon', 'teaspoon', 'ounce', 'slice', 'piece', 'egg', 'serving', 'fillet', 'breast', 'leg', 'bowl', 'glass', 'can', 'packet', 'clove', 'stick'].includes(unit)) {
       const displayUnit = unit === 'cups' ? 'cup' : unit.endsWith('s') ? unit.slice(0, -1) : unit;
       const numericAmount = amount?.includes('/') ? amount : Number(amount);
       const normalizedAmount = typeof numericAmount === 'number' && numericAmount === 0.25 ? '1/4' : String(numericAmount);

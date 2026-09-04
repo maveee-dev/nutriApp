@@ -264,10 +264,9 @@ export class NutritionConsultationService {
       const limitations = this.buildFoodLimitationGuidance(foodEvaluation);
       return hasPartialEvaluation
         ? [
-            'I could only check part of the nutrition guidance for your profile.',
+            answer,
             ...considerations,
             ...limitations,
-            this.buildPartialFoodCompatibilityAnswer(foodEvaluation),
             scoreSummary,
           ].join('\n\n')
         : [answer, ...considerations, scoreSummary, ...limitations].join('\n\n');
@@ -348,24 +347,6 @@ export class NutritionConsultationService {
       answer = `This serving of ${foodName} does not fit all of the nutrition guidance currently checked for your profile.`;
     }
 
-    const concerns = evaluation.reasons
-      .filter(({ direction }) => direction === 'negative')
-      .slice(0, 2)
-      .map(({ nutrient }) => `One thing to keep in mind is ${this.formatFoodNutrient(nutrient)}; this serving is above your current guidance.`);
-
-    return [answer, ...concerns].join(' ');
-  }
-
-  private buildPartialFoodCompatibilityAnswer(
-    foodEvaluation: NonNullable<Awaited<ReturnType<FoodEvaluationConsultationService['evaluate']>>>,
-  ): string {
-    const { evaluation } = foodEvaluation;
-    const foodName = foodEvaluation.displayName;
-    const answer = evaluation.score >= 80
-      ? `Within the guidance that was checked, this serving of ${foodName} appears compatible.`
-      : evaluation.score >= 50
-        ? `Within the guidance that was checked, this serving of ${foodName} may fit, but there are some nutrition trade-offs to consider.`
-        : `Within the guidance that was checked, this serving of ${foodName} does not fit all of the current guidance.`;
     const concerns = evaluation.reasons
       .filter(({ direction }) => direction === 'negative')
       .slice(0, 2)

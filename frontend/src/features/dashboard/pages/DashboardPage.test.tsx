@@ -37,10 +37,14 @@ describe('DashboardPage', () => {
     expect(screen.getByText("Today's nutrition")).toBeInTheDocument();
     expect(screen.getByText('Health notices')).toBeInTheDocument();
     expect(screen.getByText('Latest laboratory')).toBeInTheDocument();
-    expect(screen.getByText('Meal idea for today')).toBeInTheDocument();
-    expect(screen.getByText("Today's foods")).toBeInTheDocument();
+    expect(screen.getByText("Today's meals")).toBeInTheDocument();
+    expect(screen.getByText('Quick actions')).toBeInTheDocument();
+    expect(screen.getByText('Recommended next step')).toBeInTheDocument();
+    expect(screen.getByText('Compatibility today')).toBeInTheDocument();
+    expect(screen.getByText('Recent activity')).toBeInTheDocument();
     expect(screen.getByText('90/100')).toBeInTheDocument();
-    expect(screen.getByText('Target not configured')).toBeInTheDocument();
+    expect(screen.getByText('Intake only')).toBeInTheDocument();
+    expect(screen.getByText(/Protein: 20 g/)).toBeInTheDocument();
   });
 
   it('renders the recipe summary when recipes are available', () => {
@@ -55,9 +59,9 @@ describe('DashboardPage', () => {
     } as never;
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(screen.getByText('Your recipes')).toBeInTheDocument();
-    expect(screen.getAllByText('Chicken Adobo')).toHaveLength(4);
-    expect(screen.getByText('88/100')).toBeInTheDocument();
+    expect(screen.getByText('Recent activity')).toBeInTheDocument();
+    expect(screen.getAllByText('Chicken Adobo')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'View all recipes' })).toBeInTheDocument();
   });
 
   it('renders loading and empty states', () => {

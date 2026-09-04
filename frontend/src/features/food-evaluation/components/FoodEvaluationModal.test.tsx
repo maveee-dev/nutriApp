@@ -1,11 +1,15 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FoodEvaluationModal } from './FoodEvaluationModal';
 
-const { useFoodEvaluationMock } = vi.hoisted(() => ({ useFoodEvaluationMock: vi.fn() }));
+const { useFoodEvaluationMock, recipeEvaluateMock } = vi.hoisted(() => ({ useFoodEvaluationMock: vi.fn(), recipeEvaluateMock: vi.fn() }));
 
 vi.mock('../hooks/useFoodEvaluation', () => ({
   useFoodEvaluation: useFoodEvaluationMock,
+}));
+
+vi.mock('@/features/recipes/api/recipesApi', () => ({
+  recipesApi: { evaluate: recipeEvaluateMock },
 }));
 
 const food = {
@@ -173,5 +177,45 @@ describe('FoodEvaluationModal semantic presentation', () => {
     expect(screen.getByText('Potassium information')).toBeInTheDocument();
     expect(screen.getByText('This serving contains approximately 375 mg of potassium.')).toBeInTheDocument();
     expect(screen.getByText('/ 100')).toBeInTheDocument();
+  });
+
+  it('renders recipe evaluations with the same compatibility presentation', async () => {
+    useFoodEvaluationMock.mockReturnValue({ mutate: vi.fn(), isPending: false, error: null, data: null });
+    recipeEvaluateMock.mockResolvedValue({
+      recipeId: 'recipe-1',
+      recipeVersionId: 'recipe-version-2',
+      recipeVersion: 2,
+      portionGrams: '250',
+      evaluation: {
+        score: 86,
+        coverage: 80,
+        evaluationStatus: 'evaluated',
+        reasons: [],
+        contributions: [],
+        deferredPolicies: [{ policyId: 'ckd-phosphorus-v1', reason: 'missing-target', explanation: 'Phosphorus was not included.' }],
+        nutritionInsights: [],
+      },
+      targetCalculation: null,
+      provenance: null,
+      limitations: [],
+    });
+
+    render(
+      <FoodEvaluationModal
+        isOpen
+        onClose={vi.fn()}
+        food={null}
+        selectedServing={null}
+        quantity="1"
+        recipe={{ id: 'recipe-1', version: 2, name: 'Chicken Adobo' }}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Supporting score')).toBeInTheDocument());
+    expect(screen.getByText('Compatibility check is incomplete')).toBeInTheDocument();
+    expect(screen.getByText('86')).toBeInTheDocument();
+    expect(screen.getByText('Phosphorus was not included.')).toBeInTheDocument();
+    expect(screen.getByText(/Chicken Adobo/)).toBeInTheDocument();
+    expect(recipeEvaluateMock).toHaveBeenCalledWith('recipe-1', { version: 2, servings: '1' });
   });
 });

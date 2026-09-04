@@ -26,6 +26,7 @@ export interface FoodSummary {
   id: string;
   name: string;
   displayName?: string;
+  description?: string | null;
   variantLabel?: string | null;
   category: FoodCategory;
 }

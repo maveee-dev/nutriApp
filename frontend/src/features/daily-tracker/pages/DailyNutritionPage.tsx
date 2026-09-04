@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { addDays, format, isToday, parseISO, subDays } from 'date-fns';
 import { Apple, ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, UtensilsCrossed } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { NutritionContextLinks } from '@/components/layout/NutritionContextLinks';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -13,11 +14,10 @@ import { Select } from '@/components/ui/Select';
 import { useFoods } from '@/features/foods/hooks/useFoods';
 import { foodsApi } from '@/features/foods/api/foodsApi';
 import type { FoodDetail } from '@/features/foods/types/foods.types';
-import { preferredServing } from '@/features/foods/utils/serving';
+import { formatServingLabel, preferredServing } from '@/features/foods/utils/serving';
 import { useRecipes } from '@/features/recipes/hooks/useRecipes';
 import type { Recipe } from '@/features/recipes/types/recipe.types';
 import { recipeMatchesQuery } from '@/features/recipes/recipeSearch';
-import { formatServingLabel } from '@/features/foods/utils/serving';
 import { DailyNutritionProgressCard } from '../components/DailyNutritionProgressCard';
 import {
   useCreateDailyNutritionEntryMutation,
@@ -25,6 +25,23 @@ import {
   useDeleteDailyNutritionEntryMutation,
   useUpdateDailyNutritionEntryMutation,
 } from '../hooks/useDailyTracker';
+
+function recipeResultDetails(recipe: Recipe): string {
+  const version = recipe.versions[0];
+  const ingredientNames = (version?.components ?? [])
+    .map((component) => component.foodDisplayName || component.foodName)
+    .filter(Boolean)
+    .slice(0, 3);
+  const created = Number.isNaN(new Date(recipe.createdAt).getTime())
+    ? null
+    : `Created ${format(new Date(recipe.createdAt), 'MMM d')}`;
+  return [
+    recipe.ownerId == null ? 'Shared recipe' : 'My recipe',
+    version?.yieldServings ? `Makes ${version.yieldServings} servings` : null,
+    created,
+    ingredientNames.length > 0 ? ingredientNames.join(', ') : null,
+  ].filter((value): value is string => Boolean(value)).join(' · ');
+}
 
 export const DailyNutritionPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -123,6 +140,7 @@ export const DailyNutritionPage: React.FC = () => {
         subtitle="Track what you eat and compare your intake with your recorded nutrition targets."
         action={<Button variant="primary" onClick={() => setIsAddOpen((open) => !open)} leftIcon={<Plus size={18} />}>{isAddOpen ? 'Close' : 'Add Food'}</Button>}
       />
+      <NutritionContextLinks />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <button type="button" onClick={() => moveDate(-1)} aria-label="Previous day" style={{ border: '1px solid var(--border-light)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-full)', width: 40, height: 40, cursor: 'pointer' }}><ChevronLeft size={18} /></button>
@@ -137,16 +155,16 @@ export const DailyNutritionPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <div>
             <h2 style={{ fontSize: '1rem', fontWeight: 750 }}>Add food to {isToday(dateObject) ? 'today' : dateLabel}</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: 4 }}>Choose a catalog food and serving. Nutrition totals come from the canonical food record.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: 4 }}>Choose a food or saved recipe, then select the portion you ate.</p>
           </div>
           {!selectedFood && !selectedRecipe && <>
             <Input label="Search foods or saved recipes" placeholder="Search rice, chicken, banana..." value={search} onChange={(event) => setSearch(event.target.value)} leftIcon={<Search size={16} />} autoFocus />
             {search && (foods.isLoading || recipes.isLoading || (foods.data?.items.length ?? 0) > 0 || recipeResults.length > 0) && <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {(foods.isLoading || recipes.isLoading) && <LoadingSpinner label="Searching foods and recipes..." size={18} />}
               {!foods.isLoading && (foods.data?.items.length ?? 0) > 0 && <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Catalog foods</p>}
-              {!foods.isLoading && foods.data?.items.map((food) => <button key={food.id} type="button" onClick={() => void chooseFood(food.id)} style={{ textAlign: 'left', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)', padding: '10px 12px', cursor: 'pointer' }}><strong>{food.displayName ?? food.name}</strong>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{food.variantLabel}</small>}{food.displayName && food.name !== food.displayName && <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>Catalog detail: {food.name}</small>}</button>)}
+              {!foods.isLoading && foods.data?.items.map((food) => <button key={food.id} type="button" onClick={() => void chooseFood(food.id)} style={{ textAlign: 'left', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)', padding: '10px 12px', cursor: 'pointer' }}><strong>{food.displayName ?? food.name}</strong>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{food.variantLabel}</small>}{food.description && <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{food.description}</small>}</button>)}
             </div>}
-            {search && recipeResults.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}><p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Saved recipes</p>{recipeResults.map((recipe) => { const version = recipe.versions[0]; return <button key={recipe.id} type="button" onClick={() => chooseRecipe(recipe)} style={{ textAlign: 'left', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)', padding: '10px 12px', cursor: 'pointer' }}><strong>{version?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{recipe.ownerId == null ? 'Shared recipe' : 'My recipe'} · Makes {version?.yieldServings ?? '—'} servings</small></button>; })}</div>}
+            {search && recipeResults.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}><p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Saved recipes</p>{recipeResults.map((recipe) => { const version = recipe.versions[0]; return <button key={recipe.id} type="button" onClick={() => chooseRecipe(recipe)} style={{ textAlign: 'left', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)', padding: '10px 12px', cursor: 'pointer' }}><strong>{version?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{recipeResultDetails(recipe)}</small></button>; })}</div>}
             {search && !foods.isLoading && !recipes.isLoading && foods.data?.items.length === 0 && recipeResults.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No foods or recipes found. Try another search term.</p>}
             {recentFoods.length > 0 && <div><p style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 6 }}>Recent foods</p><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{recentFoods.map((food) => <Button key={food.foodId ?? food.id} type="button" size="sm" variant="secondary" onClick={() => food.foodId == null ? undefined : void chooseFood(food.foodId)}>{food.displayName}</Button>)}</div></div>}
           </>}
@@ -160,7 +178,7 @@ export const DailyNutritionPage: React.FC = () => {
           </form>}
           {selectedRecipe && !isLoadingFood && <form onSubmit={submitEntry} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <div style={{ padding: '10px 12px', background: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-md)' }}><strong>{selectedRecipe.versions[0]?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 3 }}>Recipe · Makes {selectedRecipe.versions[0]?.yieldServings ?? '—'} servings</small></div>
-            <div><label style={{ fontSize: '0.875rem', fontWeight: 650, display: 'block', marginBottom: 6 }}>How much did you eat?</label><p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: '0 0 6px' }}>Choose the portion of the saved recipe. Nutrition uses its current approved recipe version.</p><QuantityStepper value={servings} onChange={setServings} min={0.25} step={0.25} readOnly={false} unitLabel="serving(s)" /></div>
+            <div><label style={{ fontSize: '0.875rem', fontWeight: 650, display: 'block', marginBottom: 6 }}>How many servings did you eat?</label><p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: '0 0 6px' }}>Your recipe stays unchanged; this only records the portion you ate.</p><QuantityStepper value={servings} onChange={setServings} min={0.25} step={0.25} readOnly={false} unitLabel="serving(s)" /></div>
             {foodError && <p style={{ color: 'var(--color-danger)', fontSize: '0.8rem' }}>{foodError}</p>}
             <div style={{ display: 'flex', gap: 8 }}><Button type="button" variant="secondary" onClick={resetAdd}>Choose another</Button><Button type="submit" variant="primary" isLoading={createEntry.isPending}>Add recipe to intake</Button></div>
           </form>}

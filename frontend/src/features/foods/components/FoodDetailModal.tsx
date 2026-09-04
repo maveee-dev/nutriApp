@@ -9,7 +9,7 @@ import { useFoodDetail } from '../hooks/useFoods';
 import { FoodEvaluationModal } from '@/features/food-evaluation/components/FoodEvaluationModal';
 import { useCreateDailyNutritionEntryMutation } from '@/features/daily-tracker/hooks/useDailyTracker';
 import type { Serving } from '../types/foods.types';
-import { formatDisplayNumber, preferredServing, scaleNutrientAmount, servingGrams } from '../utils/serving';
+import { formatDisplayNumber, formatServingLabel, preferredServing, scaleNutrientAmount, servingGrams } from '../utils/serving';
 
 export interface FoodDetailModalProps {
   foodId: string | null;
@@ -66,12 +66,12 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ foodId, onClos
 
               {food.servings.length > 0 ? (
                 <Select
-                  label="Portion Type"
+                  label="Serving or household measure"
                   value={activeServingId}
                   onChange={(e) => setSelectedServingId(e.target.value)}
                   options={food.servings.map((s) => ({
                     value: s.id,
-                    label: `${s.name} (${s.grams}g)`,
+                    label: formatServingLabel(s),
                   }))}
                 />
               ) : (

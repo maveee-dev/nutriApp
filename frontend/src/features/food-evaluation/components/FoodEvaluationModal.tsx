@@ -7,6 +7,9 @@ import { useFoodEvaluation } from '../hooks/useFoodEvaluation';
 import type { FoodDetail, Serving } from '@/features/foods/types/foods.types';
 import { scaleNutrientAmount, servingGrams } from '@/features/foods/utils/serving';
 import { formatContributionExplanation } from '../foodEvaluationPresentation';
+import { recipesApi } from '@/features/recipes/api/recipesApi';
+import type { RecipeEvaluation } from '@/features/recipes/types/recipe.types';
+import type { FoodEvaluationResponse } from '../types/evaluation.types';
 
 const notableNutrientPatterns = [
   /^(?:energy|calories)$/i,
@@ -36,35 +39,115 @@ export interface FoodEvaluationModalProps {
   food: FoodDetail | null;
   selectedServing: Serving | null;
   quantity: string;
+  /** Optional recipe context; recipes use the same presentation with a different evaluation source. */
+  recipe?: FoodEvaluationRecipeContext | null;
   onAddToMeal?: () => void;
   addActionLabel?: string;
+}
+
+export interface FoodEvaluationRecipeContext {
+  id: string;
+  version: number;
+  name: string;
+}
+
+type EvaluationViewData = FoodEvaluationResponse & {
+  limitations?: string[];
+};
+
+function toFoodEvaluationResponse(recipeEvaluation: RecipeEvaluation | null): EvaluationViewData | null {
+  if (!recipeEvaluation) return null;
+
+  const provenance = recipeEvaluation.provenance as {
+    evaluatorVersion?: string;
+    policySetFingerprint?: string | null;
+  } | null;
+
+  return {
+    score: recipeEvaluation.evaluation.score,
+    evaluationStatus: recipeEvaluation.evaluation.evaluationStatus,
+    coverage: recipeEvaluation.evaluation.coverage,
+    reasons: recipeEvaluation.evaluation.reasons as FoodEvaluationResponse['reasons'],
+    contributions: recipeEvaluation.evaluation.contributions as FoodEvaluationResponse['contributions'],
+    deferredPolicies: recipeEvaluation.evaluation.deferredPolicies as FoodEvaluationResponse['deferredPolicies'],
+    nutritionInsights: recipeEvaluation.evaluation.nutritionInsights as FoodEvaluationResponse['nutritionInsights'],
+    evaluatorVersion: provenance?.evaluatorVersion,
+    policySetFingerprint: provenance?.policySetFingerprint,
+    limitations: recipeEvaluation.limitations,
+  };
 }
 
 export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
   isOpen,
   onClose,
-  food,
-  selectedServing,
+  food: foodInput,
+  selectedServing: selectedServingInput,
   quantity,
+  recipe = null,
   onAddToMeal,
   addActionLabel = 'Log to Meal',
 }) => {
-  const { mutate, data, isPending, error } = useFoodEvaluation();
+  const foodEvaluation = useFoodEvaluation();
+  const [recipeEvaluation, setRecipeEvaluation] = React.useState<RecipeEvaluation | null>(null);
+  const [isRecipePending, setIsRecipePending] = React.useState(false);
+  const [recipeError, setRecipeError] = React.useState<Error | null>(null);
+  const food = foodInput;
+  const selectedServing = selectedServingInput;
 
   useEffect(() => {
-    if (isOpen && food && selectedServing && quantity) {
-      mutate({
+    if (!isOpen || recipe || !food || !selectedServing || !quantity) return;
+
+    foodEvaluation.mutate({
         foodId: food.id,
         servingId: selectedServing.id,
         quantity,
-      });
-    }
-  }, [isOpen, food, selectedServing, quantity, mutate]);
+    });
+  }, [isOpen, recipe?.id, food?.id, selectedServing?.id, quantity, foodEvaluation.mutate]);
 
-  if (!food || !selectedServing) return null;
-  const selectedGrams = servingGrams(selectedServing, Number.parseFloat(quantity));
+  useEffect(() => {
+    if (!isOpen || !recipe) {
+      setRecipeEvaluation(null);
+      setRecipeError(null);
+      setIsRecipePending(false);
+      return;
+    }
+
+    let active = true;
+    setRecipeEvaluation(null);
+    setRecipeError(null);
+    setIsRecipePending(true);
+
+    recipesApi.evaluate(recipe.id, { version: recipe.version, servings: quantity })
+      .then((result) => {
+        if (active) setRecipeEvaluation(result);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setRecipeError(reason instanceof Error ? reason : new Error('Could not evaluate recipe'));
+      })
+      .finally(() => {
+        if (active) setIsRecipePending(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, recipe?.id, recipe?.version, quantity]);
+
+  if (!recipe && (!food || !selectedServing)) return null;
+  const data: EvaluationViewData | null = recipe ? toFoodEvaluationResponse(recipeEvaluation) : foodEvaluation.data ?? null;
+  const isPending = recipe ? isRecipePending : foodEvaluation.isPending;
+  const error = recipe ? recipeError : foodEvaluation.error;
+  const selectedGrams = food && selectedServing
+    ? servingGrams(selectedServing, Number.parseFloat(quantity))
+    : null;
+  const notableNutrientItems = food && selectedGrams != null ? notableNutrients(food) : [];
   const deferredPolicies = data?.deferredPolicies ?? [];
   const hasPartialEvaluation = data != null && (data.coverage < 100 || deferredPolicies.length > 0);
+  const subjectName = recipe?.name ?? food?.displayName ?? food?.name ?? 'Food';
+  const subtitle = recipe
+    ? `${subjectName} • ${quantity} serving${quantity === '1' ? '' : 's'}`
+    : `${subjectName}${food?.variantLabel ? ` · ${food.variantLabel}` : ''} • ${quantity} ${selectedServing?.name ?? 'serving'}`;
 
   const getScorePresentation = (score: number, incompleteCoverage: boolean) => {
     if (incompleteCoverage) {
@@ -74,13 +157,12 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
     if (score >= 50) return { bg: 'var(--color-accent-light)', text: 'var(--color-accent-shadow)', label: 'A reasonable choice with trade-offs' };
     return { bg: 'var(--color-danger-light)', text: 'var(--color-danger-shadow)', label: 'Worth balancing with other choices' };
   };
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Can I eat this?"
-      subtitle={`${food.displayName ?? food.name}${food.variantLabel ? ` · ${food.variantLabel}` : ''} • ${quantity} ${selectedServing.name}`}
+      subtitle={subtitle}
       maxWidth="480px"
     >
       {isPending ? (
@@ -88,7 +170,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
       ) : error ? (
         <div style={{ textAlign: 'center', padding: 'var(--space-md) 0' }}>
           <AlertCircle size={36} color="var(--color-danger)" style={{ margin: '0 auto var(--space-xs)' }} />
-          <p style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Could not evaluate food</p>
+          <p style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Could not evaluate this item</p>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{error.message}</p>
         </div>
           ) : data ? (
@@ -278,7 +360,7 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
             </div>
           )}
 
-          {notableNutrients(food).length > 0 && (
+          {notableNutrientItems.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -287,10 +369,10 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>for this portion (selected serving)</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }}>
-                {notableNutrients(food).map(({ nutrient, amount }) => (
+                {notableNutrientItems.map(({ nutrient, amount }) => (
                   <div key={nutrient.id} style={{ padding: '8px 10px', backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-sm)' }}>
                     <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{nutrient.name}</span>
-                    <strong style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>{scaleNutrientAmount(amount, selectedGrams)} {nutrient.unit}</strong>
+                    <strong style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>{scaleNutrientAmount(amount, selectedGrams ?? 0)} {nutrient.unit}</strong>
                   </div>
                 ))}
               </div>
@@ -333,6 +415,15 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
                 </div>
               ))}
             </div>
+          )}
+
+          {data.limitations && data.limitations.length > 0 && (
+            <details>
+              <summary style={{ color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Evaluation limitations</summary>
+              <ul style={{ margin: '6px 0 0 18px', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                {data.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}
+              </ul>
+            </details>
           )}
 
           {(data.evaluatorVersion || data.policySetFingerprint || data.snapshotVersion) && (

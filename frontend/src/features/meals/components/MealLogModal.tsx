@@ -11,6 +11,7 @@ import { useFoods } from '@/features/foods/hooks/useFoods';
 import { foodsApi } from '@/features/foods/api/foodsApi';
 import { useCreateMealMutation } from '../hooks/useMeals';
 import { FoodEvaluationModal } from '@/features/food-evaluation/components/FoodEvaluationModal';
+import type { FoodEvaluationRecipeContext } from '@/features/food-evaluation/components/FoodEvaluationModal';
 import { useFoodRecognition } from '@/features/food-recognition/hooks/useFoodRecognition';
 import { useDailyNutrition } from '@/features/dashboard/hooks/useDailyNutrition';
 import { useDailyRecommendations } from '@/features/dashboard/hooks/useDailyRecommendations';
@@ -49,6 +50,23 @@ interface StagedMealItem {
   nutritionSource: 'canonical-database' | 'ai-estimated';
 }
 
+function recipeResultDetails(recipe: Recipe): string {
+  const version = recipe.versions[0];
+  const ingredientNames = (version?.components ?? [])
+    .map((component) => component.foodDisplayName || component.foodName)
+    .filter(Boolean)
+    .slice(0, 3);
+  const created = Number.isNaN(new Date(recipe.createdAt).getTime())
+    ? null
+    : `Created ${format(new Date(recipe.createdAt), 'MMM d')}`;
+  return [
+    recipe.ownerId == null ? 'Shared recipe' : 'My recipe',
+    version?.yieldServings ? `Makes ${version.yieldServings} servings` : null,
+    created,
+    ingredientNames.length > 0 ? ingredientNames.join(', ') : null,
+  ].filter((value): value is string => Boolean(value)).join(' · ');
+}
+
 export const MealLogModal: React.FC<MealLogModalProps> = ({
   isOpen,
   onClose,
@@ -71,6 +89,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
     serving: Serving;
     quantity: string;
   } | null>(null);
+  const [evaluatingRecipe, setEvaluatingRecipe] = useState<FoodEvaluationRecipeContext | null>(null);
 
   // Search Foods Query
   const { data: foodsData, isLoading: isFoodsLoading } = useFoods({ search: searchQuery, limit: 15 });
@@ -96,6 +115,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
     setRecipeServings('1');
     setSearchQuery('');
     setEvaluatingItem(null);
+    setEvaluatingRecipe(null);
     setInputMode('search');
     setRecognitionImage(null);
     foodRecognition.reset();
@@ -193,6 +213,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setRecipeServings('1');
+    setEvaluatingRecipe(null);
     setSearchQuery('');
     setStagedItems([]);
   };
@@ -228,6 +249,17 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
       food: item.foodDetail,
       serving,
       quantity: item.quantity,
+    });
+  };
+
+  const handleOpenRecipeEvaluation = () => {
+    const version = selectedRecipe?.versions[0];
+    if (!selectedRecipe || !version || parseFloat(recipeServings) <= 0) return;
+
+    setEvaluatingRecipe({
+      id: selectedRecipe.id,
+      version: version.version,
+      name: version.name,
     });
   };
 
@@ -402,14 +434,14 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Plus size={16} color="var(--color-primary)" />
-                      <span><span style={{ display: 'block' }}>{food.displayName ?? food.name}</span>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 500 }}>{food.variantLabel}</small>}{food.displayName && food.name !== food.displayName && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 400 }}>Catalog detail: {food.name}</small>}</span>
+                      <span><span style={{ display: 'block' }}>{food.displayName ?? food.name}</span>{food.variantLabel && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 500 }}>{food.variantLabel}</small>}{food.description && <small style={{ display: 'block', color: 'var(--text-muted)', fontWeight: 400 }}>{food.description}</small>}</span>
                     </div>
                     <Badge variant="neutral" size="sm">
                       {food.category.name}
                     </Badge>
                   </button>
                 ))}
-                {recipeSearchResults.length > 0 && <div style={{ borderTop: '1px solid var(--border-light)', marginTop: 4, paddingTop: 6 }}><p style={{ padding: '4px 6px', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>Saved recipes</p>{recipeSearchResults.map((recipe) => { const version = recipe.versions[0]; return <button key={recipe.id} type="button" onClick={() => handleSelectRecipe(recipe)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', backgroundColor: 'transparent', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}><strong>{version?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{recipe.ownerId == null ? 'Shared recipe' : 'My recipe'} · Makes {version?.yieldServings ?? '—'} servings</small></button>; })}</div>}
+                {recipeSearchResults.length > 0 && <div style={{ borderTop: '1px solid var(--border-light)', marginTop: 4, paddingTop: 6 }}><p style={{ padding: '4px 6px', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>Saved recipes</p>{recipeSearchResults.map((recipe) => { const version = recipe.versions[0]; return <button key={recipe.id} type="button" onClick={() => handleSelectRecipe(recipe)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', backgroundColor: 'transparent', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-primary)' }}><strong>{version?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 2 }}>{recipeResultDetails(recipe)}</small></button>; })}</div>}
               </div>
             ) : searchQuery && !isFoodsLoading && !isRecipesLoading && searchResults.length === 0 && recipeSearchResults.length === 0 ? (
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '4px 2px' }}>
@@ -418,7 +450,20 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
             ) : null}
           </div>
 
-          {selectedRecipe && <div style={{ padding: 14, backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--border-light)' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}><div><strong style={{ display: 'block', fontSize: '0.98rem' }}>{selectedRecipe.versions[0]?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 3 }}>Recipe · Makes {selectedRecipe.versions[0]?.yieldServings ?? '—'} servings</small></div><Button type="button" size="sm" variant="secondary" onClick={() => setSelectedRecipe(null)}>Choose another</Button></div><div style={{ marginTop: 12 }}><label style={{ fontSize: '0.8125rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>How much did you eat?</label><QuantityStepper value={recipeServings} onChange={setRecipeServings} min={0.25} step={0.25} readOnly={false} unitLabel="serving(s)" /></div><p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: 8 }}>Your entry will use this recipe&apos;s selected approved version and serving multiplier.</p></div>}
+          {selectedRecipe && <div style={{ padding: 14, backgroundColor: 'var(--bg-surface-secondary)', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--border-light)' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}><div><strong style={{ display: 'block', fontSize: '0.98rem' }}>{selectedRecipe.versions[0]?.name ?? 'Untitled recipe'}</strong><small style={{ display: 'block', color: 'var(--text-muted)', marginTop: 3 }}>Recipe · Makes {selectedRecipe.versions[0]?.yieldServings ?? '—'} servings</small></div><Button type="button" size="sm" variant="secondary" onClick={() => setSelectedRecipe(null)}>Choose another</Button></div><div style={{ marginTop: 12 }}><label style={{ fontSize: '0.8125rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>How many servings did you eat?</label><QuantityStepper value={recipeServings} onChange={setRecipeServings} min={0.25} step={0.25} readOnly={false} unitLabel="serving(s)" /></div><p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: 8 }}>Your recipe stays unchanged; this only records the portion you ate.</p></div>}
+          {selectedRecipe?.versions[0] && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-sm)' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleOpenRecipeEvaluation}
+                leftIcon={<Sparkles size={14} color="var(--color-primary)" />}
+              >
+                View compatibility before adding
+              </Button>
+            </div>
+          )}
 
           {/* Staged Items / Meal List */}
           {!selectedRecipe && <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -449,7 +494,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
               >
                 <Utensils size={24} color="var(--text-muted)" />
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  Search for a food above to add it to this meal.
+                  Search for a food or saved recipe above to add it to this meal.
                 </p>
               </div>
             ) : (
@@ -550,7 +595,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                                 marginBottom: '4px',
                               }}
                             >
-                              Portion Size Definition
+                              Serving or household measure
                             </label>
                             {item.servings.length > 1 ? (
                               <Select
@@ -594,7 +639,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                           >
                             <div>
                               <label style={{ fontSize: '0.8125rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                                Number of Portions
+                                How many servings?
                               </label>
                               <QuantityStepper
                                 value={item.quantity}
@@ -629,7 +674,7 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
                                 onClick={() => handleOpenEvaluation(item)}
                                 leftIcon={<Sparkles size={14} color="var(--color-primary)" />}
                               >
-                                Can I eat this?
+                                View compatibility before adding
                               </Button>
                             </div>
                           )}
@@ -680,6 +725,16 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
           food={evaluatingItem.food}
           selectedServing={evaluatingItem.serving}
           quantity={evaluatingItem.quantity}
+        />
+      )}
+      {evaluatingRecipe && (
+        <FoodEvaluationModal
+          isOpen={!!evaluatingRecipe}
+          onClose={() => setEvaluatingRecipe(null)}
+          food={null}
+          selectedServing={null}
+          quantity={recipeServings}
+          recipe={evaluatingRecipe}
         />
       )}
     </>
