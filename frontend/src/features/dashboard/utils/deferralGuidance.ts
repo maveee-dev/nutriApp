@@ -10,15 +10,17 @@ export interface DeferralGuidance {
   supportingText?: string;
 }
 
-const labAction = (testCode: 'egfr' | 'potassium' | 'phosphorus', label: string): DeferralGuidance => ({
+const labAction = (testCode: 'egfr' | 'potassium' | 'phosphorus', label: string, verb: 'add' | 'update'): DeferralGuidance => ({
   action: {
     label,
     to: `/health?addLab=${testCode}#laboratory-results`,
   },
+  supportingText: `A ${verb === 'add' ? 'recent' : 'newer'} ${testCode === 'egfr' ? 'eGFR' : testCode} result can help personalize this guidance.`,
 });
 
 const clinicianTargetGuidance = (nutrient: string): DeferralGuidance => ({
-  supportingText: `This ${nutrient} target must be reviewed and approved by a clinician. NutriApp will not infer it from laboratory results.`,
+  action: { label: `Review ${nutrient} target`, to: '/nutrition-targets' },
+  supportingText: `A personalized ${nutrient} target is not set yet. Add or review one in Nutrition Targets if your healthcare team has given you a limit or goal.`,
 });
 
 export function deferralGuidance(deferral: NutritionPolicyDeferral): DeferralGuidance {
@@ -39,15 +41,15 @@ export function deferralGuidance(deferral: NutritionPolicyDeferral): DeferralGui
   }
 
   if (['missing-egfr', 'stale-egfr', 'invalid-egfr-unit', 'invalid-egfr-value', 'unsupported-egfr'].includes(reason)) {
-    return labAction('egfr', reason === 'missing-egfr' ? 'Add eGFR result' : 'Add a newer eGFR result');
+    return labAction('egfr', reason === 'missing-egfr' ? 'Add eGFR result' : 'Add a newer eGFR result', reason === 'missing-egfr' ? 'add' : 'update');
   }
 
   if (['missing-potassium', 'stale-potassium', 'invalid-potassium-unit', 'invalid-potassium-value'].includes(reason)) {
-    return labAction('potassium', reason === 'missing-potassium' ? 'Add potassium result' : 'Add a newer potassium result');
+    return labAction('potassium', reason === 'missing-potassium' ? 'Add potassium result' : 'Add a newer potassium result', reason === 'missing-potassium' ? 'add' : 'update');
   }
 
   if (['missing-phosphorus', 'stale-phosphorus', 'invalid-phosphorus-unit', 'invalid-phosphorus-value'].includes(reason)) {
-    return labAction('phosphorus', reason === 'missing-phosphorus' ? 'Add phosphorus result' : 'Add a newer phosphorus result');
+    return labAction('phosphorus', reason === 'missing-phosphorus' ? 'Add phosphorus result' : 'Add a newer phosphorus result', reason === 'missing-phosphorus' ? 'add' : 'update');
   }
 
   if (reason === 'missing-dialysis-status' || reason === 'stale-dialysis-evidence') {

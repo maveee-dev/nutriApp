@@ -52,10 +52,10 @@ describe('navigation architecture', () => {
     fireEvent.click(screen.getByRole('button', { name: /log food, scan food/i }));
 
     expect(screen.getByRole('dialog', { name: 'What would you like to log?' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Add Food/ })).toHaveAttribute('href', '/daily-tracker');
+    expect(screen.getByRole('link', { name: /Log food or recipe/ })).toHaveAttribute('href', '/daily-tracker');
     expect(screen.getByRole('link', { name: /Scan Food/ })).toHaveAttribute('href', '/food-recognition');
     expect(screen.getByRole('link', { name: /Create Recipe/ })).toHaveAttribute('href', '/recipes');
-    expect(screen.getByRole('link', { name: /Log Meal/ })).toHaveAttribute('href', '/meals');
+    expect(screen.getByRole('link', { name: /Build a meal/ })).toHaveAttribute('href', '/meals');
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'What would you like to log?' })).not.toBeInTheDocument();

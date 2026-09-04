@@ -99,6 +99,8 @@ export const DialysisSection: React.FC = () => {
     return <Card><p style={{ color: 'var(--color-danger)' }}>{error?.message || 'Could not load treatment status.'}</p><Button variant="secondary" size="sm" onClick={() => void refetch()} style={{ marginTop: 8 }}>Try again</Button></Card>;
   }
 
+  const summary = dialysisSummary(dialysis);
+
   return (
     <Card style={{ border: '1.5px solid var(--border-light)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-md)' }}>
@@ -119,9 +121,22 @@ export const DialysisSection: React.FC = () => {
         <div>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Dialysis Treatment Status</h2>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-            Used to adjust clinical protein and mineral nutrition targets.
+            Tell us about your current treatment so relevant nutrition guidance can be tailored.
           </p>
         </div>
+      </div>
+
+      <div
+        aria-live="polite"
+        style={{
+          marginBottom: 'var(--space-md)',
+          padding: 'var(--space-sm) var(--space-md)',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: 'var(--bg-surface-secondary)',
+        }}
+      >
+        <strong style={{ display: 'block', fontSize: '0.9rem' }}>{summary.title}</strong>
+        <p style={{ marginTop: '3px', color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.45 }}>{summary.detail}</p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -183,4 +198,38 @@ export const DialysisSection: React.FC = () => {
 
 function isSelectableModality(modality: DialysisModality): modality is SelectableDialysisModality {
   return modality === 'HEMODIALYSIS' || modality === 'PERITONEAL_DIALYSIS';
+}
+
+function dialysisSummary(dialysis: ReturnType<typeof useDialysisStatus>['data']): { title: string; detail: string } {
+  if (dialysis == null) {
+    return {
+      title: 'No dialysis status added yet',
+      detail: 'Choose your current status below so treatment-related guidance can reflect your situation.',
+    };
+  }
+
+  if (dialysis.status === 'INACTIVE') {
+    return {
+      title: 'Not on dialysis',
+      detail: 'Your profile records that you are not currently receiving dialysis treatment.',
+    };
+  }
+
+  if (!isSelectableModality(dialysis.modality)) {
+    return {
+      title: 'Dialysis type needs confirmation',
+      detail: 'Choose Hemodialysis or Peritoneal Dialysis below so the right treatment-related guidance can be used.',
+    };
+  }
+
+  const details = [
+    dialysis.frequency ? `Frequency: ${dialysis.frequency}` : null,
+    dialysis.schedule ? `Schedule: ${dialysis.schedule}` : null,
+    dialysis.effectiveAt ? `Started: ${format(new Date(dialysis.effectiveAt), 'MMM d, yyyy')}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    title: dialysis.modality === 'HEMODIALYSIS' ? 'Hemodialysis' : 'Peritoneal Dialysis',
+    detail: details.length > 0 ? details.join(' · ') : 'Your current dialysis type is saved. Add optional treatment details if you would like to keep your profile more complete.',
+  };
 }

@@ -35,10 +35,10 @@ const MobileNavLink: React.FC<MobileNavLinkProps> = ({ to, label, icon, active }
 );
 
 const actionItems = [
-  { to: '/daily-tracker', label: 'Add Food', description: 'Search the food catalog or your recipes.', icon: <Search size={20} /> },
+  { to: '/daily-tracker', label: 'Log food or recipe', description: 'Search the catalog and your saved recipes in one place.', icon: <Search size={20} /> },
   { to: '/food-recognition', label: 'Scan Food', description: 'Take a photo and review the detected foods.', icon: <Camera size={20} /> },
   { to: '/recipes', label: 'Create Recipe', description: 'Build a recipe from foods you trust.', icon: <UtensilsCrossed size={20} /> },
-  { to: '/meals', label: 'Log Meal', description: 'Record several foods as one meal.', icon: <ClipboardList size={20} /> },
+  { to: '/meals', label: 'Build a meal', description: 'Record several foods together as one meal.', icon: <ClipboardList size={20} /> },
 ];
 
 export const MobileBottomNav: React.FC = () => {

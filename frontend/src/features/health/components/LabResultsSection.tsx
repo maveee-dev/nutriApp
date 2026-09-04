@@ -59,7 +59,7 @@ export const LabResultsSection: React.FC<LabResultsSectionProps> = ({ initialAdd
           <div>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Laboratory Results</h2>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Laboratory evidence used by your active nutrition guidance.
+              Your recent results can help tailor the nutrition guidance that applies to you.
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const LabResultsSection: React.FC<LabResultsSectionProps> = ({ initialAdd
 
                   {res.referenceLow && (
                     <p style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      Standard Reference: ≥ {res.referenceLow} {res.unit}
+                      Reference range starts at {res.referenceLow} {res.unit}
                     </p>
                   )}
                 </div>
@@ -161,11 +161,11 @@ export const LabResultsSection: React.FC<LabResultsSectionProps> = ({ initialAdd
                     </Badge>
                   ) : isBelowNormal ? (
                     <Badge variant="warning" size="sm" icon={<AlertTriangle size={12} />}>
-                      Below Standard Range
+                      Below reference range
                     </Badge>
                   ) : (
                     <Badge variant="success" size="sm" icon={<CheckCircle2 size={12} />}>
-                      Normal Range
+                      Within reference range
                     </Badge>
                   )}
                 </div>

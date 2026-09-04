@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { DesktopSidebar } from './DesktopSidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { useLogout } from '@/features/auth/hooks/useAuthMutations';
@@ -7,9 +8,29 @@ import { LogOut, Sparkles } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const handleLogout = useLogout();
+  const location = useLocation();
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return undefined;
+
+    const updateKeyboardInset = () => {
+      const inset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+      document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
+    };
+
+    updateKeyboardInset();
+    viewport.addEventListener('resize', updateKeyboardInset);
+    viewport.addEventListener('scroll', updateKeyboardInset);
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardInset);
+      viewport.removeEventListener('scroll', updateKeyboardInset);
+      document.documentElement.style.removeProperty('--keyboard-inset');
+    };
+  }, []);
 
   return (
-    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
+    <div className={`app-shell${location.pathname.startsWith('/consultation') ? ' app-shell-consultation' : ''}`} style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
       {/* Desktop/tablet sidebar (collapsed on tablet, hidden on mobile) */}
       <DesktopSidebar />
 
@@ -131,7 +152,7 @@ export const AppLayout: React.FC = () => {
             position: fixed;
             left: 0;
             right: 0;
-            bottom: 0;
+            bottom: var(--keyboard-inset, 0px);
             height: calc(76px + env(safe-area-inset-bottom));
             box-sizing: border-box;
             align-items: center;
@@ -159,6 +180,7 @@ export const AppLayout: React.FC = () => {
           .mobile-log-fab {
             position: absolute;
             left: 50%;
+            /* The parent nav already moves above the keyboard inset. */
             bottom: calc(34px + env(safe-area-inset-bottom));
             transform: translateX(-50%);
             width: 62px;
@@ -185,6 +207,7 @@ export const AppLayout: React.FC = () => {
           .mobile-action-sheet-backdrop {
             position: fixed;
             inset: 0;
+            bottom: var(--keyboard-inset, 0px);
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -296,7 +319,12 @@ export const AppLayout: React.FC = () => {
             }
           }
           .page-container {
-            padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+            padding-bottom: calc(96px + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px)) !important;
+          }
+
+          /* The chat composer owns the lower edge while a question is active. */
+          .app-shell-consultation .mobile-log-fab {
+            display: none;
           }
         }
         @media (min-width: 768px) {

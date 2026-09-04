@@ -29,7 +29,7 @@ describe('DailyNutritionPage recipe logging', () => {
 
   it('finds a private recipe and submits its immutable version and eaten serving count', () => {
     render(<MemoryRouter><DailyNutritionPage /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Add Food' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Log food or recipe' }));
     fireEvent.change(screen.getByLabelText(/Search foods or saved recipes/i), { target: { value: 'chicken adobo' } });
     fireEvent.click(screen.getByRole('button', { name: /Chicken Adobo.*Recipe/i }));
     fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '2' } });

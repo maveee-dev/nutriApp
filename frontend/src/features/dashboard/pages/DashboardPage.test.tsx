@@ -45,6 +45,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('90/100')).toBeInTheDocument();
     expect(screen.getByText('Intake only')).toBeInTheDocument();
     expect(screen.getByText(/Protein: 20 g/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Review Potassium results/i })).toHaveAttribute('href', '/health?addLab=potassium#laboratory-results');
   });
 
   it('renders the recipe summary when recipes are available', () => {

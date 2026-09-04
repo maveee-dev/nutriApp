@@ -138,7 +138,7 @@ export const DailyNutritionPage: React.FC = () => {
       <PageHeader
         title="Daily Nutrition"
         subtitle="Track what you eat and compare your intake with your recorded nutrition targets."
-        action={<Button variant="primary" onClick={() => setIsAddOpen((open) => !open)} leftIcon={<Plus size={18} />}>{isAddOpen ? 'Close' : 'Add Food'}</Button>}
+        action={<Button variant="primary" onClick={() => setIsAddOpen((open) => !open)} leftIcon={<Plus size={18} />}>{isAddOpen ? 'Close' : 'Log food or recipe'}</Button>}
       />
       <NutritionContextLinks />
 

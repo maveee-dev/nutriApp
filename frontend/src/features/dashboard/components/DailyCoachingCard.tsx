@@ -60,7 +60,7 @@ const CoachingItem: React.FC<{ recommendation: RecommendationItem }> = ({ recomm
         <details style={{ marginTop: '8px' }}>
           <summary style={{ color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>Why am I seeing this?</summary>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.72rem', lineHeight: 1.45 }}>
-            <span>{recommendation.policy.source ?? 'Based on your approved nutrition guidance'} · {recommendation.policy.version}</span>
+            <span>Based on your current profile and logged intake.</span>
             {recommendation.evidence.map((evidence) => <span key={evidence.id}>{evidence.explanation}</span>)}
           </div>
         </details>

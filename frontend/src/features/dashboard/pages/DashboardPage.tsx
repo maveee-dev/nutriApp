@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useHealthDashboard } from '../hooks/useHealthDashboard';
+import { presentDashboardNotice } from '../utils/noticePresentation';
 import type {
   HealthDashboardDailyFood,
   HealthDashboardGreeting,
@@ -108,12 +109,23 @@ const HealthNotices: React.FC<{ notices: readonly HealthDashboardInsight[] }> = 
     <Card className="dashboard-section" aria-labelledby="dashboard-health-notices-title">
       <SectionHeading
         title="Health notices"
-        subtitle="The most important items are shown first."
+        subtitle="Here is what needs your attention and how to take the next step."
         icon={<Info size={19} color="var(--color-info-hover)" aria-hidden="true" />}
-        action={<Link className="dashboard-inline-link" to="/health">View health profile <ChevronRight size={15} aria-hidden="true" /></Link>}
       />
       <div className="dashboard-notice-list" id="dashboard-health-notices-title">
-        {notices.slice(0, 3).map((notice) => <div key={`${notice.source}-${notice.category}-${notice.title}`} className="dashboard-notice">{severityIcon(notice.severity)}<div><strong>{notice.title}</strong><p>{notice.message}</p></div></div>)}
+        {notices.slice(0, 3).map((notice) => {
+          const presentation = presentDashboardNotice(notice);
+          return (
+            <div key={`${notice.source}-${notice.category}-${notice.title}`} className="dashboard-notice">
+              {severityIcon(notice.severity)}
+              <div>
+                <strong>{presentation.title}</strong>
+                <p>{presentation.message}</p>
+                {presentation.action && <Link className="dashboard-inline-link" to={presentation.action.to}>{presentation.action.label} <ChevronRight size={15} aria-hidden="true" /></Link>}
+              </div>
+            </div>
+          );
+        })}
       </div>
       {notices.length > 3 && <p className="dashboard-section-subtitle">Showing the 3 most important notices.</p>}
     </Card>
@@ -177,10 +189,10 @@ const MealsSummary: React.FC<{ foods: readonly HealthDashboardDailyFood[] }> = (
         <div className="dashboard-stat"><strong>{foodCount}</strong><span>Foods</span></div>
         <div className="dashboard-stat"><strong>{recipeCount}</strong><span>Recipes</span></div>
       </div>
-      {foods.length === 0 && <div className="dashboard-empty"><p>Nothing logged today yet.</p><Link to="/daily-tracker">Add your first food <ArrowRight size={14} aria-hidden="true" /></Link></div>}
+      {foods.length === 0 && <div className="dashboard-empty"><p>Nothing logged today yet.</p><Link to="/daily-tracker">Log your first food <ArrowRight size={14} aria-hidden="true" /></Link></div>}
       <div className="dashboard-card-actions">
-        <Link to="/daily-tracker" style={{ textDecoration: 'none' }}><Button size="sm" variant="primary" leftIcon={<Plus size={15} aria-hidden="true" />}>Add Food</Button></Link>
-        <Link to="/meals" style={{ textDecoration: 'none' }}><Button size="sm" variant="secondary" leftIcon={<UtensilsCrossed size={15} aria-hidden="true" />}>Log Meal</Button></Link>
+        <Link to="/daily-tracker" style={{ textDecoration: 'none' }}><Button size="sm" variant="primary" leftIcon={<Plus size={15} aria-hidden="true" />}>Log food or recipe</Button></Link>
+        <Link to="/meals" style={{ textDecoration: 'none' }}><Button size="sm" variant="secondary" leftIcon={<UtensilsCrossed size={15} aria-hidden="true" />}>Build a meal</Button></Link>
       </div>
     </Card>
   );

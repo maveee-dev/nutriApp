@@ -43,7 +43,7 @@ describe('buildProfileCompletionItems', () => {
     expect(items.find((item) => item.id === 'conditions')).toMatchObject({ status: 'informational' });
   });
 
-  it('does not make dialysis status an action for users without dialysis guidance', () => {
+  it('makes an unrecorded dialysis status easy to complete without selecting a value', () => {
     const items = buildProfileCompletionItems({
       profile: { age: 40, sex: 'MALE', heightCm: 170, weightKg: 70 } as never,
       conditionCount: 0,
@@ -54,9 +54,9 @@ describe('buildProfileCompletionItems', () => {
 
     expect(items.find((item) => item.id === 'dialysis')).toMatchObject({
       status: 'informational',
-      action: undefined,
+      action: { label: 'Set dialysis status', to: '/health#dialysis-status' },
     });
-    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/has not been recorded/i);
+    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/No dialysis status has been selected/i);
   });
 
   it('distinguishes an explicit no-dialysis choice from missing status', () => {
@@ -72,7 +72,7 @@ describe('buildProfileCompletionItems', () => {
       status: 'informational',
       action: undefined,
     });
-    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/not on dialysis recorded/i);
+    expect(items.find((item) => item.id === 'dialysis')?.detail).toMatch(/selected Not on dialysis/i);
   });
 
   it('flags active dialysis with an unknown modality for confirmation', () => {

@@ -77,4 +77,15 @@ describe('MealLogModal recipe logging', () => {
     expect(screen.getByRole('button', { name: /Green Beans.*Vegetables/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Green Bean Salad.*Recipe/i })).toBeInTheDocument();
   });
+
+  it('keeps the meal search focused while results update after typing', () => {
+    render(<MealLogModal isOpen onClose={vi.fn()} />);
+    const search = screen.getByPlaceholderText(/Type to search foods/i);
+
+    search.focus();
+    fireEvent.change(search, { target: { value: 'green' } });
+    fireEvent.change(search, { target: { value: 'green beans' } });
+
+    expect(document.activeElement).toBe(search);
+  });
 });

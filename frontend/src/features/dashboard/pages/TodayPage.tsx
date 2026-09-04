@@ -146,7 +146,7 @@ export const TodayPage: React.FC = () => {
               onClick={() => setIsLogModalOpen(true)}
               leftIcon={<Plus size={18} />}
             >
-              Log Meal
+              Log food or meal
             </Button>
             <Link
               to="/daily-tracker"

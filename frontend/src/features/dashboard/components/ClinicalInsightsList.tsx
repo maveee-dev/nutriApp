@@ -18,6 +18,13 @@ const friendlyInsightLabel = (ruleId: string, nutrient?: string): string => {
   return 'Nutrition guidance';
 };
 
+const severityLabel = (severity: string): string => {
+  const value = severity.toLowerCase();
+  if (value.includes('high') || value.includes('warning') || value.includes('alert') || value.includes('excess')) return 'Review this';
+  if (value.includes('good') || value.includes('optimal') || value.includes('within')) return 'On track';
+  return 'Information';
+};
+
 export const ClinicalInsightsList: React.FC<ClinicalInsightsListProps> = ({ insights }) => {
   if (!insights || insights.length === 0) {
     return null;
@@ -61,7 +68,7 @@ export const ClinicalInsightsList: React.FC<ClinicalInsightsListProps> = ({ insi
         >
           <Info size={18} />
         </div>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Personalized Nutrition Insights</h2>
+        <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Nutrition notes</h2>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
@@ -92,7 +99,7 @@ export const ClinicalInsightsList: React.FC<ClinicalInsightsListProps> = ({ insi
                   {friendlyInsightLabel(insight.ruleId)}
                 </span>
                 <Badge variant={variant} size="sm" icon={icon}>
-                  Needs attention
+                  {severityLabel(insight.severity)}
                 </Badge>
               </div>
 
@@ -108,11 +115,9 @@ export const ClinicalInsightsList: React.FC<ClinicalInsightsListProps> = ({ insi
               )}
 
               <details style={{ marginTop: '2px' }}>
-                <summary style={{ color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}>Why am I seeing this?</summary>
+                <summary style={{ color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}>Why this may matter</summary>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '5px', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                  {insight.policyId && <span>Policy: {insight.policyId}{insight.policyVersion ? ` (${insight.policyVersion})` : ''}</span>}
-                  {insight.evaluatorVersion && <span>Evaluator: {insight.evaluatorVersion}</span>}
-                  {insight.snapshotId && <span>Snapshot: {insight.snapshotId}</span>}
+                  <span>This note uses the health and nutrition information saved in your profile.</span>
                 </div>
               </details>
             </div>

@@ -67,26 +67,20 @@ export const PolicyDeferralCallout: React.FC<PolicyDeferralCalloutProps> = ({ de
                       borderRadius: 'var(--radius-full)',
                     }}
                   >
-                    More information needed
+                    Needs a little more information
                   </span>
                 </div>
 
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.45 }}>
-                  {deferral.explanation}
+                  {guidance.supportingText ?? deferral.explanation}
                 </p>
-
-                {guidance.supportingText && (
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.5 }}>
-                    {guidance.supportingText}
-                  </p>
-                )}
 
                 <details style={{ marginTop: '6px' }}>
                   <summary style={{ color: 'var(--color-clinical)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}>
-                    Why is this guidance paused?
+                    Why am I seeing this?
                   </summary>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', lineHeight: 1.45, marginTop: '4px' }}>
-                    Policy: {deferral.policyId} &middot; Reason: {deferral.reason}
+                    NutriApp needs this information before it can personalize this part of your guidance.
                   </p>
                 </details>
 

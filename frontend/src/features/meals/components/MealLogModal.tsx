@@ -352,8 +352,8 @@ export const MealLogModal: React.FC<MealLogModalProps> = ({
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title="Log a Meal"
-        subtitle="Add the foods you consumed to track your daily nutrients."
+        title="Build a meal"
+        subtitle="Add the foods or recipes you consumed, then save them together in your daily log."
         maxWidth="580px"
       >
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>

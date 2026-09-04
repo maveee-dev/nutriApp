@@ -34,15 +34,15 @@ export const MealsPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
       <PageHeader
-        title="Meals & Logs"
-        subtitle="Keep a record of your meals to track your nutrition."
+        title="Meal Log"
+        subtitle="Build a meal from several foods, then keep it in your daily record."
         action={
           <Button
             variant="primary"
             onClick={() => setIsLogModalOpen(true)}
             leftIcon={<Plus size={18} />}
           >
-            Log a Meal
+            Build a meal
           </Button>
         }
       />
@@ -79,7 +79,7 @@ export const MealsPage: React.FC = () => {
           icon={<UtensilsCrossed size={32} />}
           title="No meals logged yet"
           description="Log your first meal to see your daily nutrient breakdown and progress."
-          actionLabel="+ Log a Meal"
+          actionLabel="+ Build a meal"
           onAction={() => setIsLogModalOpen(true)}
         />
       ) : (

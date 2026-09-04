@@ -63,7 +63,7 @@ export function buildProfileCompletionItems(input: ProfileCompletionInput): Prof
     {
       id: 'sex',
       label: 'Biological sex',
-      detail: input.profile?.sex == null ? 'Add this information to support applicable target calculations.' : 'Recorded.',
+      detail: input.profile?.sex == null ? 'Add this information when you are ready so applicable guidance can be tailored.' : 'Recorded.',
       status: input.profile?.sex == null ? 'attention' : 'complete',
       action: input.profile?.sex == null ? { label: 'Add biological sex', to: '/health#physical-metrics' } : undefined,
     },
@@ -111,14 +111,20 @@ export function buildProfileCompletionItems(input: ProfileCompletionInput): Prof
       id: 'dialysis',
       label: 'Dialysis treatment details',
       detail: input.dialysisStatus == null
-        ? 'Dialysis treatment status has not been recorded.'
+        ? 'No dialysis status has been selected yet. Choose your current status so treatment-related guidance can be tailored when relevant.'
         : input.dialysisStatus.status === 'INACTIVE'
-          ? 'Not on dialysis recorded.'
+          ? 'You selected Not on dialysis.'
           : hasUnresolvedActiveModality
             ? 'Please confirm whether treatment is hemodialysis or peritoneal dialysis.'
-            : 'Dialysis treatment status recorded.',
+            : input.dialysisStatus.modality === 'HEMODIALYSIS'
+              ? 'Hemodialysis selected. Add optional treatment details if you would like to keep your profile up to date.'
+              : 'Peritoneal Dialysis selected. Add optional treatment details if you would like to keep your profile up to date.',
       status: hasUnresolvedActiveModality ? 'attention' : 'informational',
-      action: hasUnresolvedActiveModality ? { label: 'Confirm dialysis type', to: '/health#dialysis-status' } : undefined,
+      action: input.dialysisStatus == null
+        ? { label: 'Set dialysis status', to: '/health#dialysis-status' }
+        : hasUnresolvedActiveModality
+          ? { label: 'Confirm dialysis type', to: '/health#dialysis-status' }
+          : undefined,
     });
   }
 
@@ -129,7 +135,7 @@ export function buildProfileCompletionItems(input: ProfileCompletionInput): Prof
       const deferral = labDeferrals.find((policy) => LAB_REASON_TO_CODE[policy.reason] === code);
       if (!deferral) continue;
       const guidance = deferralGuidance(deferral);
-      const label = code === 'egfr' ? 'eGFR laboratory evidence' : code === 'potassium' ? 'Potassium laboratory evidence' : 'Phosphorus laboratory evidence';
+      const label = code === 'egfr' ? 'eGFR result' : code === 'potassium' ? 'Potassium result' : 'Phosphorus result';
       items.push({
         id: 'lab-' + code,
         label,
@@ -141,12 +147,12 @@ export function buildProfileCompletionItems(input: ProfileCompletionInput): Prof
   } else {
     items.push({
       id: 'laboratory',
-      label: 'Laboratory evidence',
+      label: 'Lab results',
       detail: input.laboratoryResults.length > 0
         ? input.laboratoryResults.length + ' laboratory result' + (input.laboratoryResults.length === 1 ? '' : 's') + ' recorded.'
-        : 'No laboratory evidence is currently requested by active guidance.',
+        : 'No lab result is needed for the guidance currently active on your profile.',
       status: input.laboratoryResults.length > 0 ? 'complete' : 'informational',
-      action: input.laboratoryResults.length === 0 ? { label: 'Review laboratory results', to: '/health#laboratory-results' } : undefined,
+      action: undefined,
     });
   }
 

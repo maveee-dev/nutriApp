@@ -18,10 +18,10 @@ describe('deferralGuidance', () => {
     expect(deferralGuidance(deferral('missing-dialysis-status')).action?.to).toBe('/health#dialysis-status');
   });
 
-  it('does not offer a misleading action for clinician-approved targets', () => {
+  it('routes users to the target screen for review of personalized targets', () => {
     const guidance = deferralGuidance(deferral('missing-individualized-phosphorus-target'));
-    expect(guidance.action).toBeUndefined();
-    expect(guidance.supportingText).toMatch(/approved by a clinician/i);
+    expect(guidance.action).toEqual({ label: 'Review phosphorus target', to: '/nutrition-targets' });
+    expect(guidance.supportingText).toMatch(/healthcare team/i);
   });
 
   it('routes modality corrections to the dialysis workflow', () => {
