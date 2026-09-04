@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { CompatibilityScoreCard } from '@/components/ui/CompatibilityScoreCard';
 import { useNutritionConsultation } from '../hooks/useNutritionConsultation';
 import type {
   NutritionConsultationClarificationChoice,
@@ -329,26 +330,7 @@ const ConsultationPage: React.FC = () => {
             </Card>
           )}
 
-          {evaluation && (
-            <Card role="region" className={`consultation-compatibility-card ${partial ? 'is-partial' : 'is-complete'}`} aria-label="Compatibility score">
-              <div className="consultation-section-heading-row">
-                <div>
-                  <div className="consultation-section-kicker">Compatibility Score</div>
-                  <h2>{partial ? 'Supporting score' : 'Compatibility score'}</h2>
-                </div>
-                <Badge variant={partial ? 'clinical' : 'success'} size="sm">{partial ? 'Partial check' : 'Complete check'}</Badge>
-              </div>
-              <div className="consultation-score-row">
-                <div className="consultation-score-number" aria-label={`${evaluation.score} out of 100`}>
-                  <strong>{evaluation.score}</strong><span>/ 100</span>
-                </div>
-                <p>{partial
-                  ? 'This score reflects only the nutrition guidance that could be evaluated.'
-                  : 'This score reflects the nutrition guidance currently evaluated for your profile.'}
-                </p>
-              </div>
-            </Card>
-          )}
+          {evaluation && <CompatibilityScoreCard score={evaluation.score} partial={partial} title="Compatibility score" />}
 
           {evaluation && (
             <Card className="consultation-section-card">

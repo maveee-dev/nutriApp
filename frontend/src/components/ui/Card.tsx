@@ -22,7 +22,8 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`card ${interactive ? 'card-interactive' : ''} ${className}`}
+      className={`card ${interactive ? 'card-interactive' : ''} card-padding-${padding} ${className}`}
+      data-interactive={interactive ? 'true' : undefined}
       style={{
         ...paddingStyles[padding],
         ...style,

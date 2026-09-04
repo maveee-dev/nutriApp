@@ -14,6 +14,10 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   const content = (
     <div
+      className="loading-state"
+      role="status"
+      aria-live="polite"
+      aria-label={label || 'Loading'}
       style={{
         display: 'flex',
         flexDirection: 'column',

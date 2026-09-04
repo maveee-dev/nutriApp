@@ -18,6 +18,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
+      className="empty-state"
+      role="status"
       style={{
         display: 'flex',
         flexDirection: 'column',

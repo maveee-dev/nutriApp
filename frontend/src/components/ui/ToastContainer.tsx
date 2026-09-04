@@ -35,6 +35,9 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <div
+      role="region"
+      aria-label="Notifications"
+      aria-live="polite"
       style={{
         position: 'fixed',
         top: '20px',
@@ -81,6 +84,7 @@ export const ToastContainer: React.FC = () => {
           </div>
           <button
             type="button"
+            aria-label="Dismiss notification"
             onClick={() => removeToast(toast.id)}
             style={{
               background: 'transparent',

@@ -79,6 +79,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
 
       <div
+        className={`progress-bar progress-bar-${size}`}
+        role="progressbar"
+        aria-label={label || 'Nutrition progress'}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
         style={{
           width: '100%',
           height: heightStyles,

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { CompatibilityScoreCard } from '@/components/ui/CompatibilityScoreCard';
 import { CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { useFoodEvaluation } from '../hooks/useFoodEvaluation';
 import type { FoodDetail, Serving } from '@/features/foods/types/foods.types';
@@ -149,14 +150,6 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
     ? `${subjectName} • ${quantity} serving${quantity === '1' ? '' : 's'}`
     : `${subjectName}${food?.variantLabel ? ` · ${food.variantLabel}` : ''} • ${quantity} ${selectedServing?.name ?? 'serving'}`;
 
-  const getScorePresentation = (score: number, incompleteCoverage: boolean) => {
-    if (incompleteCoverage) {
-      return { bg: 'var(--bg-surface-secondary)', text: 'var(--text-secondary)', label: 'Supporting score' };
-    }
-    if (score >= 80) return { bg: 'var(--color-primary-light)', text: 'var(--color-primary-shadow)', label: 'Looks like a great fit' };
-    if (score >= 50) return { bg: 'var(--color-accent-light)', text: 'var(--color-accent-shadow)', label: 'A reasonable choice with trade-offs' };
-    return { bg: 'var(--color-danger-light)', text: 'var(--color-danger-shadow)', label: 'Worth balancing with other choices' };
-  };
   return (
     <Modal
       isOpen={isOpen}
@@ -185,85 +178,9 @@ export const FoodEvaluationModal: React.FC<FoodEvaluationModalProps> = ({
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>Some clinically relevant guidance could not be evaluated for this portion.</p>
               </div>
             </div>
-          ) : (() => {
-              const { bg, text, label } = getScorePresentation(data.score, hasPartialEvaluation);
-              return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {hasPartialEvaluation && (
-                  <div
-                    role="status"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '10px 12px',
-                      backgroundColor: 'var(--color-clinical-subtle)',
-                      border: '1px solid var(--color-clinical-light)',
-                      borderRadius: 'var(--radius-md)',
-                      color: 'var(--color-clinical-hover)',
-                      fontSize: '0.8rem',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <Info size={16} color="var(--color-clinical)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <div>
-                      {hasPartialEvaluation ? (
-                        <>
-                          <strong style={{ display: 'block', fontSize: '0.9rem' }}>Compatibility check is incomplete</strong>
-                          <span style={{ display: 'block', marginTop: '3px' }}>Some clinically relevant nutrition guidance was not included in this compatibility score.</span>
-                          <span style={{ display: 'block', marginTop: '3px' }}>This score reflects only the nutrition guidance that could currently be evaluated.</span>
-                        </>
-                      ) : (
-                        <span>Some clinically relevant nutrition guidance was not included in this compatibility score.</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    padding: '16px',
-                    backgroundColor: bg,
-                    borderRadius: 'var(--radius-lg)',
-                    border: hasPartialEvaluation ? '1px solid var(--border-subtle)' : undefined,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: hasPartialEvaluation ? '44px' : '56px',
-                      height: hasPartialEvaluation ? '44px' : '56px',
-                      borderRadius: 'var(--radius-full)',
-                      backgroundColor: 'var(--bg-surface)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: hasPartialEvaluation ? 'none' : 'var(--shadow-sm)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: hasPartialEvaluation ? '1.05rem' : '1.35rem', fontWeight: 800, color: text, lineHeight: 1 }}>
-                      {data.score}
-                    </span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                      / 100
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 style={{ fontSize: hasPartialEvaluation ? '0.95rem' : '1.1rem', fontWeight: 700, color: text }}>{label}</h3>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      {hasPartialEvaluation
-                        ? 'Shown as supporting information for the guidance that could be evaluated'
-                        : 'A friendly check against your current goals and nutrition guidance'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              );
-            })()}
+          ) : (
+            <CompatibilityScoreCard score={data.score} partial={hasPartialEvaluation} />
+          )}
 
           {data.nutritionInsights && data.nutritionInsights.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -21,6 +21,9 @@ export const SegmentedControl = <T extends string>({
 }: SegmentedControlProps<T>) => {
   return (
     <div
+      className="segmented-control"
+      role="group"
+      aria-label="Selection"
       style={{
         display: 'inline-flex',
         backgroundColor: 'var(--bg-surface-secondary)',
@@ -38,6 +41,8 @@ export const SegmentedControl = <T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
+            aria-pressed={isSelected}
+            className={`segmented-control-option ${isSelected ? 'is-selected' : ''}`}
             style={{
               flex: fullWidth ? 1 : 'initial',
               display: 'inline-flex',

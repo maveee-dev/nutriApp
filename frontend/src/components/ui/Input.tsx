@@ -20,6 +20,7 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const descriptionId = inputId ? `${inputId}-description` : undefined;
 
   return (
     <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
@@ -55,6 +56,8 @@ export const Input: React.FC<InputProps> = ({
         <input
           id={inputId}
           className={`input-field ${className}`}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error || helperText ? descriptionId : undefined}
           style={{
             width: '100%',
             minHeight: 'var(--touch-target-min)',
@@ -93,11 +96,11 @@ export const Input: React.FC<InputProps> = ({
       </div>
 
       {error ? (
-        <span style={{ fontSize: '0.8125rem', color: 'var(--color-danger)', fontWeight: 500 }}>
+        <span id={descriptionId} className="form-error" role="alert">
           {error}
         </span>
       ) : helperText ? (
-        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+        <span id={descriptionId} className="form-helper">
           {helperText}
         </span>
       ) : null}

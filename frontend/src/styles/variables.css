@@ -48,6 +48,22 @@
   --text-muted: #94A3B8;
   --text-inverse: #FFFFFF;
 
+  /* Semantic surface aliases used by shared UI primitives */
+  --color-success: var(--color-primary);
+  --color-success-surface: var(--color-primary-subtle);
+  --color-info-surface: var(--color-info-subtle);
+  --color-warning: var(--color-accent);
+  --color-warning-surface: var(--color-accent-subtle);
+  --color-danger-surface: var(--color-danger-subtle);
+
+  /* Type scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 0.95rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
   /* Borders */
   --border-light: #E2E8F0;
   --border-medium: #CBD5E1;
@@ -78,6 +94,15 @@
 
   /* Minimum touch target size */
   --touch-target-min: 48px;
+
+  /* Content and layer constraints */
+  --content-max-width: 1120px;
+  --content-reading-width: 760px;
+  --z-header: 40;
+  --z-bottom-nav: 50;
+  --z-sheet: 90;
+  --z-modal: 100;
+  --z-toast: 9999;
 
   /* Transitions */
   --transition-fast: 150ms ease-out;

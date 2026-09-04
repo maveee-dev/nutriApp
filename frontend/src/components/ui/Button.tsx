@@ -35,7 +35,10 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
-      className={`btn ${variantClass} ${className}`}
+      className={`btn ${variantClass} btn-size-${size} ${className}`}
+      data-variant={variant}
+      data-size={size}
+      aria-busy={isLoading || undefined}
       style={sizeStyles[size]}
       disabled={disabled || isLoading}
       {...props}

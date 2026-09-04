@@ -31,6 +31,8 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={`badge badge-${variant} ${className}`}
+      data-variant={variant}
+      data-size={size}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

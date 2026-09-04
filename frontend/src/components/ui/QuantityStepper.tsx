@@ -50,7 +50,7 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div className="quantity-stepper" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div
         style={{
           display: 'inline-flex',
@@ -89,6 +89,7 @@ export const QuantityStepper: React.FC<QuantityStepperProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px' }}>
           <input
             type="number"
+            aria-label={unitLabel ? `Quantity in ${unitLabel}` : 'Quantity'}
             value={value}
             onChange={handleInputChange}
             min={min}

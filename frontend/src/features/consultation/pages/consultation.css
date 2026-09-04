@@ -303,53 +303,6 @@
   text-transform: uppercase;
 }
 
-.consultation-compatibility-card {
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.consultation-compatibility-card.is-partial {
-  border-color: var(--color-clinical-light);
-  background: var(--color-clinical-subtle);
-}
-
-.consultation-score-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin-top: var(--space-md);
-}
-
-.consultation-score-number {
-  display: flex;
-  align-items: baseline;
-  flex-shrink: 0;
-  color: var(--color-primary-shadow);
-}
-
-.consultation-compatibility-card.is-partial .consultation-score-number {
-  color: var(--text-secondary);
-}
-
-.consultation-score-number strong {
-  font-size: 2.25rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.consultation-score-number span {
-  margin-left: 3px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.consultation-score-row p {
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
 .consultation-section,
 .consultation-section-card {
   display: flex;
@@ -698,12 +651,6 @@
   .consultation-food-context-row,
   .consultation-recipe-meta {
     flex-direction: column;
-  }
-
-  .consultation-score-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
   }
 
   .consultation-composer-footer > span {

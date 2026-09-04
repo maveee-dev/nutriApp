@@ -9,15 +9,15 @@ export const AppLayout: React.FC = () => {
   const handleLogout = useLogout();
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
+    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
       {/* Desktop/tablet sidebar (collapsed on tablet, hidden on mobile) */}
       <DesktopSidebar />
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="app-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Mobile Header */}
         <header
-          className="mobile-header-only"
+          className="mobile-header-only mobile-header"
           style={{
             height: '60px',
             backgroundColor: 'var(--bg-surface)',
@@ -77,7 +77,7 @@ export const AppLayout: React.FC = () => {
             flex: 1,
             padding: 'var(--space-lg) var(--space-md)',
             paddingBottom: 'calc(var(--space-lg) + env(safe-area-inset-bottom))',
-            maxWidth: '1080px',
+            maxWidth: 'var(--content-max-width)',
             width: '100%',
             margin: '0 auto',
           }}
@@ -139,7 +139,7 @@ export const AppLayout: React.FC = () => {
             border-top: 1.5px solid var(--border-light);
             box-shadow: 0 -4px 16px -2px rgba(15, 23, 42, 0.08);
             padding: 0 var(--space-xs) env(safe-area-inset-bottom);
-            z-index: 50;
+            z-index: var(--z-bottom-nav);
           }
           .mobile-bottom-nav-inner {
             width: 100%;
@@ -190,7 +190,7 @@ export const AppLayout: React.FC = () => {
             justify-content: center;
             padding: var(--space-md);
             background: rgba(15, 23, 42, 0.42);
-            z-index: 90;
+            z-index: var(--z-sheet);
           }
           .mobile-action-sheet {
             width: min(520px, 100%);

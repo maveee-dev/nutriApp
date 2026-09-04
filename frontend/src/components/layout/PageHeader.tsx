@@ -13,6 +13,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <div
+      className="page-header"
       style={{
         display: 'flex',
         flexDirection: 'row',
